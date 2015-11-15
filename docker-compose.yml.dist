@@ -1,0 +1,23 @@
+data:
+  image: tianon/true
+  volumes:
+    - ./data/postgres:/var/lib/postgresql/data
+    - ./data/odoo/files:/var/lib/odoo
+
+postgres:
+  image: postgres:9.4
+  environment:
+    - POSTGRES_USER=odoo
+    - POSTGRES_PASS=password
+  volumes_from:
+    - data
+
+odoo:
+  image: odoo:8
+  links:
+    - postgres:db
+  environment:
+    - VIRTUAL_HOST=odoo.lachouettecoop.test
+    - VIRTUAL_PORT=8069
+  volumes_from:
+    - data

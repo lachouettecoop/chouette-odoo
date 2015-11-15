@@ -1,0 +1,3 @@
+docker-compose.yml
+data/postgres/
+data/odoo/files
