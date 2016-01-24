@@ -9,6 +9,10 @@ utilisez le site !*
 
 * récupérer le projet (`git clone`)
 * avoir [Docker](http://docs.docker.com/) et [Docker Compose](http://docs.docker.com/compose/install/) installé
+* permissions d'éxecuter entrypoint.sh
+```
+chmod +x odoo/entrypoint.sh
+```
 
 ## Utilisation
 

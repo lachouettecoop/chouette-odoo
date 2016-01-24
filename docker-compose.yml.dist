@@ -13,7 +13,7 @@ postgres:
     - data
 
 odoo:
-  image: odoo:8
+  build: odoo
   links:
     - postgres:db
   environment:
