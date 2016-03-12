@@ -3,21 +3,26 @@ data:
   volumes:
     - ./data/postgres:/var/lib/postgresql/data
     - ./data/odoo/files:/var/lib/odoo
+    - ./data/odoo/addons:/mnt/extra-addons
 
-postgres:
+db:
   image: postgres:9.4
   environment:
     - POSTGRES_USER=odoo
-    - POSTGRES_PASS=password
+    - POSTGRES_PASS=odoo
   volumes_from:
     - data
 
 odoo:
   build: odoo
   links:
-    - postgres:db
+    - db:db
   environment:
-    - VIRTUAL_HOST=odoo.lachouettecoop.test
+    - VIRTUAL_HOST=espace-membres.lachouettecoop.test
     - VIRTUAL_PORT=8069
+    - PGHOST=db
+    - PGUSER=odoo
+    - PGPASSWORD=odoo
+
   volumes_from:
     - data

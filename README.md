@@ -22,6 +22,11 @@ Pour lancer l'application exécutez simplement la commande :
 docker-compose up -d
 ```
 
+Changer les droits du dossier data/odoo
+```
+chmod -R 777 data/odoo/
+```
+
 ### Bonus
 
 Si vous avez [nginx-proxy](https://github.com/jwilder/nginx-proxy) en place (suivre procédure de lancement très simple sur la doc) le site sera accessible à l'url : http://odoo.lachouettecoop.test/
