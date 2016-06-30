@@ -6,7 +6,7 @@ echo "Démarrage de la remise à zéro de cette instance d'Odoo."
 echo "... les données seront resynchronisées depuis " $DATA_TO_USE
 
 echo "TODO Ajouter ici une confirmation car ça craint si exécuté par erreur, en expliquant les conséquences tout ça"
-echo ""
+echo "ou même faire en sorte que si le VIRTUAL_HOST du docker-compose ne contient ni preprod ou test on bloque"
 
 echo "Arrêt et suppression de l'instance actuelle"
 docker-compose stop && docker-compose rm -vf
