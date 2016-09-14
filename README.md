@@ -9,10 +9,11 @@ utilisez le site !*
 
 * récupérer le projet (`git clone`)
 * avoir [Docker](http://docs.docker.com/) et [Docker Compose](http://docs.docker.com/compose/install/) installé
-* permissions d'éxecuter entrypoint.sh
-```
-chmod +x odoo/entrypoint.sh
-```
+
+## Récupérer les données
+
+* récupérer la base de données
+* Récupérer les fichiers (pdf, images produits...)
 
 ## Utilisation
 
@@ -26,6 +27,11 @@ Changer les droits du dossier data/odoo
 ```
 chmod -R 777 data/odoo/
 ```
+
+## Après installation
+
+* Activer le mode "dev" dans l'admin odoo
+* Supprimer l'envoi des mails (config smtp)
 
 ### Bonus
 
