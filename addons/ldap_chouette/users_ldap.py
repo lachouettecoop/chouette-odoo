@@ -35,9 +35,9 @@ class ChouetteLDAP(osv.osv):
         :return: parameters for a new resource of model res_users
         :rtype: dict
         """
-        name = u'{0} {1}'.format(ldap_entry[1]['description'][0],
-                                 ldap_entry[1]['sn'][0])
-        _logger.info(u'Authenticating {0}'.format(name))
+        name = '{0} {1}'.format(ldap_entry[1]['description'][0],
+                                ldap_entry[1]['sn'][0])
+        _logger.info('Authenticating {0}'.format(ldap_entry[1]['cn'][0]))
         values = { 'name': name, 'login': login, 'company_id': conf['company']
                    }
         return values
