@@ -3,7 +3,7 @@ data:
   volumes:
     - ./data/postgres:/var/lib/postgresql/data
     - ./data/odoo/files:/var/lib/odoo
-    - ./data/odoo/addons:/mnt/extra-addons
+    - ./addons:/mnt/extra-addons
 
 db:
   image: postgres:9.4
