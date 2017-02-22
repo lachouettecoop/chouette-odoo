@@ -38,7 +38,7 @@ class ChouetteLDAP(osv.osv):
         name = '{0} {1}'.format(ldap_entry[1]['description'][0],
                                 ldap_entry[1]['sn'][0])
         _logger.info('Authenticating {0}'.format(ldap_entry[1]['cn'][0]))
-        values = { 'name': name, 'login': login, 'company_id': conf['company']
+        values = { 'name': name, 'login': login, 'email': login, 'company_id': conf['company']
                    }
         return values
 

@@ -17,7 +17,7 @@
     'name' : 'La Chouette Coop LDAP authentication',
     'description' : ('Override native Odoo LDAP authentication with La '
                      'Chouette Coop specific LDAP schema'),
-    'version' : '0.1',
+    'version' : '0.2',
     'depends' : ['base'],
     #'description': < auto-loaded from README file
     'category' : 'Extra Tools',
