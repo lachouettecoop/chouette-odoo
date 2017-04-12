@@ -1,3 +1,4 @@
-docker-compose.yml
-data/postgres/
-data/odoo/files
+/docker-compose.yml
+/data/postgres/
+/data/odoo/files
+/data/odoo/etc/openerp-server.conf

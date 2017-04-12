@@ -2,6 +2,7 @@ data:
   image: tianon/true
   volumes:
     - ./data/postgres:/var/lib/postgresql/data
+    - ./data/odoo/etc:/etc/odoo
     - ./data/odoo/files:/var/lib/odoo
     - ./addons:/mnt/extra-addons
 
