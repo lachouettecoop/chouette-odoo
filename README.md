@@ -17,15 +17,11 @@ utilisez le site !*
 
 ## Utilisation
 
-Pour lancer l'application exécutez simplement la commande :
+Pour lancer l'application exécutez simplement les commandes :
 
 ```
-docker-compose up -d
-```
-
-Changer les droits du dossier data/odoo
-```
-chmod -R 777 data/odoo/
+./run.sh init
+./run.sh
 ```
 
 ## Après installation
