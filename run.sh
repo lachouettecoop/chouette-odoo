@@ -8,8 +8,24 @@ case $1 in
         ;;
     init)
         test -e docker-compose.yml || cp docker-compose.yml.dist docker-compose.yml
-        test -e data/odoo/etc/openerp-server.conf || cp data/odoo/etc/openerp-server.conf.dist data/odoo/etc/openerp-server.conf
-        docker-compose run -u root odoo bash -c 'chown -R odoo:odoo /etc/odoo/*; chmod -R 777 /var/lib/odoo'
+        test -e data/odoo/etc/openerp-server.conf \
+            || cp data/odoo/etc/openerp-server.conf.dist data/odoo/etc/openerp-server.conf
+        docker-compose run --rm db chown -R postgres:postgres /var/lib/postgresql
+        docker-compose run --rm -u root odoo bash -c \
+            "chown -R odoo:odoo /etc/odoo/*; chmod -R 777 /var/lib/odoo"
+        ;;
+    reboot)
+        docker-compose build || exit -1
+        docker-compose stop || exit -1
+        docker-compose rm -fa || exit -1
+        $0 init || exit -1
+        $0
+        ;;
+    debug)
+        docker-compose stop || exit -1
+        docker-compose run --rm odoo openerp-server \
+            --load=base,web,website \
+            --logfile=/dev/stdout --log-level=debug
         ;;
     bash)
         ODOO_CONTAINER=`docker-compose ps |grep _odoo_ |cut -d" " -f1`

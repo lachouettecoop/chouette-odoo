@@ -24,6 +24,5 @@ odoo:
     - PGHOST=db
     - PGUSER=odoo
     - PGPASSWORD=odoo
-
   volumes_from:
     - data
