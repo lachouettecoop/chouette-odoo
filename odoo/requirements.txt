@@ -1,0 +1,18 @@
+# Modules python a instaler avec pip -r requirements.txt
+
+
+# Modules pythons nécessaires pour installer des modules Odoo 
+# utilisés par La Louve (FIXME: quels modules Odoo?):
+# https://gestion.lachouettecoop.fr/issues/1229
+ofxparse==0.14
+beautifulsoup4==4.5.1
+pyBarcode==0.7
+# Autres modules pythons aussi utilisés par La Louve:
+gdata==2.0.18
+jcconv==0.2.3
+Python-Chart==1.39
+qrcode==5.1
+# FIXME: simplejson need gcc compiler to install its speedup extensions
+simplejson==3.10.0
+suds-jurko==0.6
+Unidecode==0.4.20

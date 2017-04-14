@@ -6,4 +6,7 @@ RUN apt-get update \
         python-ldap \
     && rm -rf /var/lib/apt/lists/*
 
+COPY requirements.txt /tmp
+RUN pip install -r /tmp/requirements.txt && rm -f /tmp/requirements.txt
+
 USER odoo
