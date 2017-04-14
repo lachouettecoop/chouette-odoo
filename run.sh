@@ -1,6 +1,7 @@
 #!/bin/bash
 
-cd `dirname $0` || exit -1
+set -e
+cd `dirname $0`
 
 case $1 in
     "")
@@ -8,8 +9,23 @@ case $1 in
         ;;
     init)
         test -e docker-compose.yml || cp docker-compose.yml.dist docker-compose.yml
-        test -e data/odoo/etc/openerp-server.conf || cp data/odoo/etc/openerp-server.conf.dist data/odoo/etc/openerp-server.conf
-        docker-compose run -u root odoo bash -c 'chown -R odoo:odoo /etc/odoo/*; chmod -R 777 /var/lib/odoo'
+        test -e data/odoo/etc/openerp-server.conf \
+            || cp data/odoo/etc/openerp-server.conf.dist data/odoo/etc/openerp-server.conf
+        docker-compose run --rm db chown -R postgres:postgres /var/lib/postgresql
+        docker-compose run --rm -u root odoo bash -c \
+            "chown -R odoo:odoo /etc/odoo/*; chmod -R 777 /var/lib/odoo"
+        ;;
+    update)
+        read -rp "Êtes-vous sure de vouloir effacer et mettre à jour les images et conteneurs Docker ? (o/n)"
+        echo
+        if [[ $REPLY =~ ^[oO]$ ]] ; then
+            docker-compose pull
+            docker-compose build
+            docker-compose stop
+            docker-compose rm -f
+            $0 init
+            $0
+        fi
         ;;
     bash)
         ODOO_CONTAINER=`docker-compose ps |grep _odoo_ |cut -d" " -f1`
@@ -27,8 +43,9 @@ case $1 in
     *)
         cat <<HELP
 Utilisation : $0 [COMMANDE]
-  init         : initialise
+  init         : initialise les données
                : lance les conteneurs
+  update       : met à jour les images et les conteneurs Docker
   bash         : lance bash sur le conteneur odoo
   psql         : lance psql sur le conteneur db, en mode interactif
   stop         : stoppe les conteneurs
