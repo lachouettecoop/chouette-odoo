@@ -3,6 +3,12 @@
 set -e
 cd `dirname $0`
 
+function container_full_name() {
+    # workaround for docker-compose ps: https://github.com/docker/compose/issues/1513
+    echo `docker inspect -f '{{if .State.Running}}{{.Name}}{{end}}' \
+            $(docker-compose ps -q) | cut -d/ -f2 | grep $1`
+}
+
 case $1 in
     "")
         docker-compose up -d
@@ -47,13 +53,13 @@ case $1 in
         fi
         ;;
     bash)
-        ODOO_CONTAINER=`docker-compose ps |grep _odoo_ |cut -d" " -f1`
+        ODOO_CONTAINER=`container_full_name _odoo_`
         docker exec -it $ODOO_CONTAINER $*
         ;;
     psql)
         POSTGRES_USER=`grep POSTGRES_USER docker-compose.yml|cut -d= -f2`
         POSTGRES_PASS=`grep POSTGRES_PASS docker-compose.yml|cut -d= -f2`
-        DB_CONTAINER=`docker-compose ps |grep _db_ |cut -d" " -f1`
+        DB_CONTAINER=`container_full_name _db_`
         docker exec -it $DB_CONTAINER env PGPASSWORD="$POSTGRES_PASS2" psql db $POSTGRES_USER
         ;;
     build|config|create|down|events|exec|kill|logs|pause|port|ps|pull|restart|rm|run|start|stop|unpause|up)
