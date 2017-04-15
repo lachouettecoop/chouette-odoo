@@ -13,18 +13,37 @@ case $1 in
             || cp data/odoo/etc/openerp-server.conf.dist data/odoo/etc/openerp-server.conf
         docker-compose run --rm db chown -R postgres:postgres /var/lib/postgresql
         docker-compose run --rm -u root odoo bash -c \
-            "chown -R odoo:odoo /etc/odoo/*; chmod -R 777 /var/lib/odoo"
+            "chown -R odoo:odoo /etc/odoo/*.conf; chmod -R 777 /var/lib/odoo"
         ;;
-    update)
-        read -rp "Êtes-vous sure de vouloir effacer et mettre à jour les images et conteneurs Docker ? (o/n)"
-        echo
+    upgrade)
+        read -rp "Êtes-vous sûr de vouloir effacer et mettre à jour les images et conteneurs Docker ? (o/n) "
         if [[ $REPLY =~ ^[oO]$ ]] ; then
+            old_release=`docker-compose run --rm odoo env|grep ODOO_RELEASE`
             docker-compose pull
             docker-compose build
             docker-compose stop
             docker-compose rm -f
+            new_release=`docker-compose run --rm odoo env|grep ODOO_RELEASE`
+            if [ "$new_release" != "$old_release" ] ; then
+                echo "***********************************************n"
+                echo "* NOUVELLE VERSION ODOO : $new_release"
+                echo "* IL FAUT METTRE À JOUR SA BASE DE DONNEE"
+                echo "***********************************************"
+                $0 update
+            else
+                $0
+            fi
+        fi
+        ;;
+    update)
+        echo "Mise à jour de la base Odoo, voire https://doc.odoo.com/install/linux/updating/"
+        echo "Une fois la mise a jour terminée, arretez Odoo (^C) et relancer le normalement"
+        echo "L'opération est longue, vérifiez avec la commande 'top' qu'elle est bien terminée"
+        read -rp "Êtes-vous sûr ? (o/n) "
+        if [[ $REPLY =~ ^[oO]$ ]] ; then
+            docker-compose stop odoo
             $0 init
-            $0
+            docker-compose run --rm odoo openerp-server -d db -u all
         fi
         ;;
     bash)
@@ -45,7 +64,8 @@ case $1 in
 Utilisation : $0 [COMMANDE]
   init         : initialise les données
                : lance les conteneurs
-  update       : met à jour les images et les conteneurs Docker
+  upgrade      : met à jour les images et les conteneurs Docker
+  update       : met à jour la base Odoo suite à un changement de version mineure
   bash         : lance bash sur le conteneur odoo
   psql         : lance psql sur le conteneur db, en mode interactif
   stop         : stoppe les conteneurs
