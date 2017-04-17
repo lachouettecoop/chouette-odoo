@@ -20,32 +20,41 @@
 ##############################################################################
 
 import openerp
+import openerp.addons.website.models.ir_http
 from openerp.osv import orm
 from openerp.addons.web.http import request
 
+
+PUBLIC_PATH=(
+    "/",
+    "/web/login",
+    "/web/image/51472",
+    "/web/image/59179",
+    "/longpolling/poll",
+)
+
+PUBLIC_WEB_CONTENT=(
+    "web.assets_common.js",
+    "web.assets_common.0.css",
+    "website.assets_frontend.js",
+    "website.assets_frontend.0.css",
+)
 
 class ir_http(orm.AbstractModel):
     _inherit = 'ir.http'
     def _auth_method_public(self):
         """Redefine "public" auth method to call "user" auth method
-           except for /, /web/login and their needed content (image,css,js)
+           except for PUBLIC_PATH and PUBLIC_WEB_CONTENT for which
+           we call website "public" auth method.
         """
         path = request.httprequest.path
-        public = False
-        if path in ("/","/longpolling/poll","/web/login","/web/image/51472", "/web/image/59179"):
-            public = True
-        elif path.startswith("/web/content/"):
-            path = path[13:].split("/")
-            public = (len(path) == 2) and path[-1] in ("website.assets_frontend.0.css", "website.assets_frontend.js", "web.assets_common.0.css", "web.assets_common.js")
-        if public:
-            if not request.session.uid:
-                website = self.pool['website'].get_current_website(request.cr, openerp.SUPERUSER_ID, context=request.context)
-                if website:
-                    request.uid = website.user_id.id
-                else:
-                    request.uid = self.pool['ir.model.data'].xmlid_to_res_id(request.cr, openerp.SUPERUSER_ID, 'base', 'public_user')
-            else:
-                request.uid = request.session.uid
+        if path.startswith("/web/content/"):
+            content_path = path[13:].split("/")
+            keep_public = (len(content_path) == 2) and (content_path[1] in PUBLIC_WEB_CONTENT)
+        else:
+            keep_public = path in PUBLIC_PATH
+        if keep_public:
+            openerp.addons.website.models.ir_http.ir_http._auth_method_public(self)
         else:
             self._auth_method_user()
 
