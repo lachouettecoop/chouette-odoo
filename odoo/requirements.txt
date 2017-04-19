@@ -12,7 +12,6 @@ gdata==2.0.18
 jcconv==0.2.3
 Python-Chart==1.39
 qrcode==5.1
-# FIXME: simplejson need gcc compiler to install its speedup extensions
-simplejson==3.10.0
+#simplejson installed with apt-get python-simplejson in Dockerfile as it would requires gcc compiler
 suds-jurko==0.6
 Unidecode==0.4.20
