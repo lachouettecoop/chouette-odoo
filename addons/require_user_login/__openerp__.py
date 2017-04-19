@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 ##############################################################################
 #
-#    No public HTTP authentification, Odoo addon
+#    Require User Login, Odoo addon
 #    Copyright La Chouette Coop
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -18,4 +18,18 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-import models
+{
+    'name'       : "Require User Login",
+    'summary'    : "Replace 'public' http auth by 'user' to force user login excep for / and /web/login",
+    'category'   : 'Extra Tools',
+    'author'     : "La Chouette Coop",
+    'website'    : "http://www.lachouettecoop.fr",
+    'license'    : "AGPL-3",
+    'version'    : '9.0.0.0.1',
+    'installable': True,
+    'depends'    : [
+        'base',
+        'website',
+    ],
+    'data'       : [],
+}

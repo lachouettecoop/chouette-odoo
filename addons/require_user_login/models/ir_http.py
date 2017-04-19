@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 ##############################################################################
 #
-#    No public HTTP authentification, Odoo addon
+#    Require User Login, Odoo addon
 #    Copyright La Chouette Coop
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -20,9 +20,9 @@
 ##############################################################################
 
 import openerp
-import openerp.addons.website.models.ir_http
-from openerp.osv import orm
+from openerp.models import AbstractModel
 from openerp.addons.web.http import request
+from openerp.addons.website.models.ir_http import ir_http as website_ir_http
 
 
 PUBLIC_PATH=(
@@ -40,7 +40,7 @@ PUBLIC_WEB_CONTENT=(
     "website.assets_frontend.0.css",
 )
 
-class ir_http(orm.AbstractModel):
+class ir_http(AbstractModel):
     _inherit = 'ir.http'
     def _auth_method_public(self):
         """Redefine "public" auth method to call "user" auth method
@@ -54,7 +54,7 @@ class ir_http(orm.AbstractModel):
         else:
             keep_public = path in PUBLIC_PATH
         if keep_public:
-            openerp.addons.website.models.ir_http.ir_http._auth_method_public(self)
+            website_ir_http._auth_method_public(self)
         else:
             self._auth_method_user()
 

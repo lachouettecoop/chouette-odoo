@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 ##############################################################################
 #
-#    No public HTTP authentification, Odoo addon
+#    Require User Login, Odoo addon
 #    Copyright La Chouette Coop
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -18,13 +18,4 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-{
-    'name' : 'No public HTTP authentification',
-    'description' : ('Replace "public" authentification by "user", except for / and /web/login'
-                     'REM: "none" autheftification, like for /database/manager is still possible'),
-    'version' : '0.1',
-    'depends' : ['base', 'website'],
-    'category' : 'Extra Tools',
-    'data' : [],
-    'installable': True,
-}
+import models
