@@ -43,13 +43,12 @@ case $1 in
         ;;
     update)
         echo "Mise à jour de la base Odoo, voire https://doc.odoo.com/install/linux/updating/"
-        echo "Une fois la mise a jour terminée, arretez Odoo (^C) et relancer le normalement"
-        echo "L'opération est longue, vérifiez avec la commande 'top' qu'elle est bien terminée"
+        echo "Une fois la mise a jour terminée, relancer Odoo normalement"
         read -rp "Êtes-vous sûr ? (o/n) "
         if [[ $REPLY =~ ^[oO]$ ]] ; then
             docker-compose stop odoo
             $0 init
-            docker-compose run --rm odoo openerp-server -d db -u all
+            docker-compose run --rm odoo openerp-server -d db -u all --stop-after-init
         fi
         ;;
     debug)
@@ -62,11 +61,16 @@ case $1 in
         ODOO_CONTAINER=`container_full_name _odoo_`
         docker exec -it $ODOO_CONTAINER $*
         ;;
-    psql)
+    psql|pg_dump|psqlrestore)
+        case $1 in
+            psql)        cmd=psql;    option="-it";;
+            pg_dump)     cmd=pg_dump; option=     ;;
+            psqlrestore) cmd=psql;    option="-i" ;;
+        esac
         POSTGRES_USER=`grep POSTGRES_USER docker-compose.yml|cut -d= -f2`
         POSTGRES_PASS=`grep POSTGRES_PASS docker-compose.yml|cut -d= -f2`
         DB_CONTAINER=`container_full_name _db_`
-        docker exec -it $DB_CONTAINER env PGPASSWORD="$POSTGRES_PASS2" psql db $POSTGRES_USER
+        docker exec $option $DB_CONTAINER env PGPASSWORD="$POSTGRES_PASS" PGUSER=$POSTGRES_USER $cmd db
         ;;
     build|config|create|down|events|exec|kill|logs|pause|port|ps|pull|restart|rm|run|start|stop|unpause|up)
         docker-compose $*
@@ -80,6 +84,8 @@ Utilisation : $0 [COMMANDE]
   update       : met à jour la base Odoo suite à un changement de version mineure
   bash         : lance bash sur le conteneur odoo
   psql         : lance psql sur le conteneur db, en mode interactif
+  pg_dump      : lance pg_dump sur le conteneur db
+  psqlrestore  : permet de rediriger un dump vers la commande psql
   stop         : stoppe les conteneurs
   rm           : efface les conteneurs
   logs         : affiche les logs des conteneurs
