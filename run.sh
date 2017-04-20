@@ -9,6 +9,13 @@ function container_full_name() {
             $(docker-compose ps -q) | cut -d/ -f2 | grep $1`
 }
 
+function dc_dockerfiles_images() {
+    DOCKERFILES=`grep -E '^\s*build:' docker-compose.yml|cut -d: -f2 |sed 's/\s*\([^ ]*\)\s*/\1\/Dockerfile/'`
+    for dockerfile in $DOCKERFILES; do
+        echo `grep "^FROM " $dockerfile |cut -d' ' -f2`
+    done
+}
+
 case $1 in
     "")
         docker-compose up -d
@@ -26,6 +33,9 @@ case $1 in
         if [[ $REPLY =~ ^[oO]$ ]] ; then
             old_release=`docker-compose run --rm odoo env|grep ODOO_RELEASE`
             docker-compose pull
+            for image in `dc_dockerfiles_images`; do
+                docker pull $image
+            done
             docker-compose build
             docker-compose stop
             docker-compose rm -f

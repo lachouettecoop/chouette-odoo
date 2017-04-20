@@ -40,6 +40,7 @@ docker-compose up -d db
 
 if [ "$VIRTUAL_HOST" != "espace-membres.lachouettecoop.fr" ] ; then
     echo "Désactivation des serveurs de mail autre que Mailcatcher"
+    sleep 2 # attente que la base de donnée soit lancée
     ./run.sh psqlrestore << EOSQL
 UPDATE ir_mail_server SET active=false WHERE name NOT LIKE '%Mailcatcher%';
 EOSQL
