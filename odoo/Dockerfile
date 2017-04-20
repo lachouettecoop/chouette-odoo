@@ -4,6 +4,7 @@ USER root
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         python-ldap \
+        python-simplejson \
     && rm -rf /var/lib/apt/lists/*
 
 ENV ADDONS=/usr/lib/python2.7/dist-packages/openerp/addons
