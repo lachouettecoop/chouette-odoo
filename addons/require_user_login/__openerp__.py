@@ -21,7 +21,7 @@
 {
     'name'       : "Require User Login",
     'summary'    : "Replace 'public' http auth by 'user' to force user login excep for / and /web/login",
-    'category'   : 'Extra Tools',
+    'category'   : 'Website',
     'author'     : "La Chouette Coop",
     'website'    : "http://www.lachouettecoop.fr",
     'license'    : "AGPL-3",
