@@ -21,132 +21,85 @@
 
 from openerp import http
 from openerp import SUPERUSER_ID
-from openerp.addons.web.controllers.main import Database, db_list
 from openerp.http import request
-import jinja2
-import simplejson
-import sys
-import os
+from openerp.addons.web.controllers.main import Database
+from openerp.exceptions import AccessError
+import werkzeug.utils
 
-openerpweb = http
-
-if hasattr(sys, 'frozen'):
-    # When running on compiled windows binary, we don't have access to package loader.
-    path = os.path.realpath(os.path.join(os.path.dirname(__file__), '..', 'views'))
-    loader = jinja2.FileSystemLoader(path)
-else:
-    loader = jinja2.PackageLoader('openerp.addons.restrict_db_mgr', "views")
-
-env = jinja2.Environment(loader=loader, autoescape=True)
-env.filters["json"] = simplejson.dumps
-
+ADMIN_CATEGORY = 'Administration'
+ADMIN_GROUP = 'Access Rights'
 
 class Database_restrict(Database):
 
     def _is_usr_admin(self):
-
-        uid=request.session.uid
-        cr=request.cr
-        context=request.context
-
-        # Admin user allowed
-        if uid==SUPERUSER_ID:
+        uid = request.session.uid
+        if uid == SUPERUSER_ID:
             return True
-
-        # Get technical features group
-        data_obj=request.registry['ir.model.data']
-        admin_group_id=data_obj.search(cr, SUPERUSER_ID, [('model','=','res.groups' ),('name','=','group_no_one')], context=context)
-        if admin_group_id:
-
-                # Check if user belongs to group technical features
-                groups_obj=request.registry['res.groups']
-                user_id=groups_obj.search(cr, SUPERUSER_ID, [('id','=',admin_group_id[0]), ('users','in', [uid])], context=context)
-
+        cr, context, registry = request.cr, request.context, request.registry
+        admin_category = registry('ir.module.category').search(
+                cr, SUPERUSER_ID, [('name','=',ADMIN_CATEGORY),])
+        if len(admin_category):
+            admin_group = registry('res.groups').search(cr, SUPERUSER_ID,
+                ['&', ('name','=',ADMIN_GROUP),
+                      ('category_id','=',admin_category[0]),])
+            if len(admin_group):
+                user_id = registry('res.groups').search(
+                    cr, SUPERUSER_ID,
+                    [('id','=',admin_group[0]), ('users','in', [uid])],
+                    context=context)
                 return user_id and True or False
-
-
         return False
 
+    def _access_forbidden(self):
+        return werkzeug.utils.redirect('/web/login', 303)
 
-    @http.route('/web/database/manager', type='http', auth="none")
-    def manager(self, **kw):
-
-        # Check if admin group
+    @http.route('/web/database/manager')
+    def manager(self, *args, **kwargs):
         if self._is_usr_admin():
-            # If admin group, call parent class method
-            return super(Database_restrict, self).manager(**kw)
-
-        # If not admin group, error page
+            return super(Database_restrict, self).manager(*args, **kwargs)
         else:
-            return  env.get_template("restrict_access.html").render({'debug': request.debug})
+            return self._access_forbidden()
 
-
-    @http.route('/web/database/create', type='json', auth="none")
-    def create(self, req, fields):
-
-        # Check if admin group
+    @http.route('/web/database/create')
+    def create(self, *args, **kwargs):
         if self._is_usr_admin():
-            # If admin group, call parent class method
-            return super(Database_restrict, self).create(req, fields)
-
+            return super(Database_restrict, self).create(*args, **kwargs)
         else:
-            return  env.get_template("restrict_access.html").render({'debug': request.debug})
+            return self._access_forbidden()
 
-    @http.route('/web/database/duplicate', type='json', auth="none")
-    def duplicate(self, req, fields):
-
-        # Check if admin group
+    @http.route('/web/database/duplicate')
+    def duplicate(self, *args, **kwargs):
         if self._is_usr_admin():
-            # If admin group, call parent class method
-            return super(Database_restrict, self).duplicate(req, fields)
-
+            return super(Database_restrict, self).duplicate(*args, **kwargs)
         else:
-            return  env.get_template("restrict_access.html").render({'debug': request.debug})
+            return self._access_forbidden()
 
-    @http.route('/web/database/drop', type='json', auth="none")
-    def drop(self, req, fields):
-
-        # Check if admin group
+    @http.route('/web/database/drop')
+    def drop(self, *args, **kwargs):
         if self._is_usr_admin():
-            # If admin group, call parent class method
-            return super(Database_restrict, self).drop(req, fields)
-
+            return super(Database_restrict, self).drop(*args, **kwargs)
         else:
-            return  env.get_template("restrict_access.html").render({'debug': request.debug})
+            return self._access_forbidden()
 
-    @http.route('/web/database/backup', type='http', auth="none")
-    def backup(self, req, backup_db, backup_pwd, token):
-
-        # Check if admin group
+    @http.route('/web/database/backup')
+    def backup(self, *args, **kwargs):
         if self._is_usr_admin():
-            # If admin group, call parent class method
-            return super(Database_restrict, self).backup(req, fields)
-
+            return super(Database_restrict, self).backup(*args, **kwargs)
         else:
-            return  env.get_template("restrict_access.html").render({'debug': request.debug})
+            return self._access_forbidden()
 
-    @http.route('/web/database/restore', type='http', auth="none")
-    def restore(self, req, db_file, restore_pwd, new_db):
-
-        # Check if admin group
+    @http.route('/web/database/restore')
+    def restore(self, *args, **kwargs):
         if self._is_usr_admin():
-            # If admin group, call parent class method
-            return super(Database_restrict, self).restore(req, fields)
-
+            return super(Database_restrict, self).restore(*args, **kwargs)
         else:
-            return  env.get_template("restrict_access.html").render({'debug': request.debug})
+            return self._access_forbidden()
 
-    @http.route('/web/database/change_password', type='json', auth="none")
-    def change_password(self, req, fields):
-
-        # Check if admin group
+    @http.route('/web/database/change_password')
+    def change_password(self, *args, **kwargs):
         if self._is_usr_admin():
-            # If admin group, call parent class method
-            return super(Database_restrict, self).restore(req, fields)
-
+            return super(Database_restrict, self).change_password(*args, **kwargs)
         else:
-            return  env.get_template("restrict_access.html").render({'debug': request.debug})
-
-
+            return self._access_forbidden()
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

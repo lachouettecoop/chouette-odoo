@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ##############################################################################
-#    
+#
 #    OpenERP, Open Source Enterprise Management Solution
 #    risk_management Module
 #    Copyright (C) 2014 OpenSur (comercial@opensur.com)
@@ -16,32 +16,22 @@
 #    GNU Affero General Public License for more details.
 #
 #    You should have received a copy of the GNU Affero General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.     
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
 {
-    'name': 'Restrict access to Manage Databases',
-    'version': '1.0',
-    'author': 'OpenSur SA',
-    'website': 'http://www.opensur.com',
-    'category': 'Website',
-    'description': """
-       Restrict access to Manage Databases feature, only administrator user or technical features group allowed\n
-       You can customize error page by editing file: restrict_access.html
-
-    """,
-    'depends': ['web', 'base'],
-    'update_xml':[
-    ],
-    'data': [],
-    'demo': [],
-    'test': [],
-    'qweb' : [
-                "views/base.xml",
-                "views/restrict_access.xml"
+    'name'     : 'Restrict access to Manage Databases',
+    'summary'  : "Restrict access to Manage Databases feature, only administrator or members of 'Access Right' group allowed.",
+    'category' : 'Website',
+    'author'   : 'OpenSur SA',
+    'website'  : 'http://www.opensur.com',
+    'version'  : '9.0.0.1.0',
+    'license'  : "AGPL-3",
+    'depends': [
+        'base',
+        'web',
     ],
     'installable': True,
-    'application': True,
     'auto_install': True,
     'active': False,
 }
