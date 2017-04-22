@@ -6,7 +6,7 @@ cd `dirname $0`
 function container_full_name() {
     # workaround for docker-compose ps: https://github.com/docker/compose/issues/1513
     echo `docker inspect -f '{{if .State.Running}}{{.Name}}{{end}}' \
-            $(docker-compose ps -q) | cut -d/ -f2 | grep $1`
+            $(docker-compose ps -q) | cut -d/ -f2 | grep _${1}_`
 }
 
 function dc_dockerfiles_images() {
@@ -14,6 +14,19 @@ function dc_dockerfiles_images() {
     for dockerfile in $DOCKERFILES; do
         echo `grep "^FROM " $dockerfile |cut -d' ' -f2`
     done
+}
+
+function dc_exec_or_run() {
+    CONTAINER_SHORT_NAME=$1
+    CONTAINER_FULL_NAME=`container_full_name ${CONTAINER_SHORT_NAME}`
+    shift
+    if test -n "$CONTAINER_FULL_NAME" ; then
+        # container already started
+        docker exec -it $CONTAINER_FULL_NAME $*
+    else
+        # container not started
+        docker-compose run --rm $CONTAINER_SHORT_NAME $*
+    fi
 }
 
 case $1 in
@@ -63,13 +76,17 @@ case $1 in
         ;;
     debug)
         docker-compose stop odoo
+        shift
         docker-compose run --rm odoo openerp-server \
             --load=base,web,website \
-            --logfile=/dev/stdout --log-level=debug
+            --logfile=/dev/stdout --log-level=debug $*
         ;;
     bash)
-        ODOO_CONTAINER=`container_full_name _odoo_`
-        docker exec -it $ODOO_CONTAINER $*
+        dc_exec_or_run odoo bash
+        ;;
+    shell)
+        shift
+        dc_exec_or_run odoo odoo.py shell -d db $*
         ;;
     psql|pg_dump|psqlrestore)
         case $1 in
@@ -79,7 +96,7 @@ case $1 in
         esac
         POSTGRES_USER=`grep POSTGRES_USER docker-compose.yml|cut -d= -f2`
         POSTGRES_PASS=`grep POSTGRES_PASS docker-compose.yml|cut -d= -f2`
-        DB_CONTAINER=`container_full_name _db_`
+        DB_CONTAINER=`container_full_name db`
         docker exec $option $DB_CONTAINER env PGPASSWORD="$POSTGRES_PASS" PGUSER=$POSTGRES_USER $cmd db
         ;;
     build|config|create|down|events|exec|kill|logs|pause|port|ps|pull|restart|rm|run|start|stop|unpause|up)
@@ -93,6 +110,7 @@ Utilisation : $0 [COMMANDE]
   upgrade      : met à jour les images et les conteneurs Docker
   update       : met à jour la base Odoo suite à un changement de version mineure
   bash         : lance bash sur le conteneur odoo
+  shell        : lance Odoo shell (python)
   psql         : lance psql sur le conteneur db, en mode interactif
   pg_dump      : lance pg_dump sur le conteneur db
   psqlrestore  : permet de rediriger un dump vers la commande psql
