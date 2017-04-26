@@ -30,17 +30,4 @@ RUN sed -i -e 's/is_checked: false/is_checked: true/' \
     && sed -i -e 's/firstHour: 6,/firstHour: 8,/' \
         $ADDONS/web_calendar/static/lib/fullcalendar/js/fullcalendar.js
 
-
-## Passage en mode authentification obligatoire en remplacant
-##    auth="public" par auth="user"
-## Le premier et le dernier sed doit s'appliquer qu'à la méthode web_login que le module
-## website a redéfinis comme étant "public" au lieu de "none" dans le module web hérité
-## et on ne veut pas passer web_login à auth="user" sinon => boucle de redirection infinie !
-#RUN sed -i -e 's/@http.route(website=True, auth="public")/@http.route(website=True, auth="none")/' \
-#        $ADDONS/website/controllers/main.py \
-#    && sed -i -e 's/auth=['"'"'"]public['"'"'"]/auth="user"/g' \
-#        $ADDONS/web*/controllers/main.py \
-#    && sed -i -e 's/@http.route(website=True, auth="none")/@http.route(website=True, auth="public")/' \
-#        $ADDONS/website/controllers/main.py
-
 USER odoo

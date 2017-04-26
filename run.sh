@@ -74,15 +74,27 @@ case $1 in
             docker-compose run --rm odoo openerp-server -d db -u all --stop-after-init
         fi
         ;;
+    prune)
+        read -rp "Êtes-vous sûr de vouloir effacer les conteneurs et images Docker innutilisés ? (o/n)"
+        if [[ $REPLY =~ ^[oO]$ ]] ; then
+            # Note: la commande docker system prune n'est pas dispo sur les VPS OVH
+            # http://stackoverflow.com/questions/32723111/how-to-remove-old-and-unused-docker-images/32723285
+            exited_containers=$(docker ps -qa --no-trunc --filter "status=exited")
+            test "$exited_containers" != ""  && docker rm $exited_containers
+            dangling_images=$(docker images --filter "dangling=true" -q --no-trunc)
+            test "$dangling_images" != "" && docker rmi $dangling_images
+        fi
+        ;;
     debug)
         docker-compose stop odoo
         shift
         docker-compose run --rm odoo openerp-server \
-            --load=base,web,website \
-            --logfile=/dev/stdout --log-level=debug $*
+            --logfile=/dev/stdout --log-level=debug \
+            --debug --dev \
+            $*
         ;;
     bash)
-        dc_exec_or_run odoo bash
+        dc_exec_or_run odoo $*
         ;;
     shell)
         shift
@@ -109,6 +121,8 @@ Utilisation : $0 [COMMANDE]
                : lance les conteneurs
   upgrade      : met à jour les images et les conteneurs Docker
   update       : met à jour la base Odoo suite à un changement de version mineure
+  prune        : efface les conteneurs et images Docker inutilisés
+  debug        : lance Odoo en mode debug
   bash         : lance bash sur le conteneur odoo
   shell        : lance Odoo shell (python)
   psql         : lance psql sur le conteneur db, en mode interactif
