@@ -19,9 +19,9 @@
 #
 ##############################################################################
 {
-    'name'       : "Require User Login",
-    'summary'    : "Replace 'public' http auth by 'user' to force user login excep for / and /web/login",
-    'category'   : 'Website',
+    'name'       : "User Menu for La Chouette Coop",
+    'summary'    : "Replace top right UserMenu: change support link, remvoe My Odoo Account link",
+    'category'   : 'Extra Tools',
     'author'     : "La Chouette Coop",
     'website'    : "http://www.lachouettecoop.fr",
     'license'    : "AGPL-3",
@@ -29,7 +29,12 @@
     'installable': True,
     'depends'    : [
         'base',
-        'website',
+        'web',
     ],
-    'data'       : [],
+    'data'       : [
+        'data/user_menu_chouette.xml',
+    ],
+    'qweb'       : [
+        'static/src/xml/base.xml',
+    ],
 }

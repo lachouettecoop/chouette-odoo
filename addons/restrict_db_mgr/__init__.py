@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 ##############################################################################
 #
-#    Require User Login, Odoo addon
-#    Copyright La Chouette Coop
+#    OpenERP, Open Source Enterprise Management Solution
+#    risk_management Module
+#    Copyright (C) 2014 OpenSur (comercial@opensur.com)
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -18,18 +19,4 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-{
-    'name'       : "Require User Login",
-    'summary'    : "Replace 'public' http auth by 'user' to force user login excep for / and /web/login",
-    'category'   : 'Website',
-    'author'     : "La Chouette Coop",
-    'website'    : "http://www.lachouettecoop.fr",
-    'license'    : "AGPL-3",
-    'version'    : '9.0.0.0.1',
-    'installable': True,
-    'depends'    : [
-        'base',
-        'website',
-    ],
-    'data'       : [],
-}
+from . import controllers
