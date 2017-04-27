@@ -21,8 +21,6 @@
 
 from openerp import api, fields, models
 
-DEFAULT_SUPPORT_URL = "https://espace-membres.lachouettecoop.fr/web#action=92&active_id=3"
-
 class user_menu_chouette_config_settings(models.TransientModel):
     """ Inherit the base setting to add the url to use for User Menu «Support» link. """
 
@@ -32,7 +30,8 @@ class user_menu_chouette_config_settings(models.TransientModel):
 
     @api.multi
     def get_default_x_user_menu_support_url(self):
-        return {'x_user_menu_support_url': DEFAULT_SUPPORT_URL}
+        url = self.env["ir.config_parameter"].get_param("x_user_menu_support_url", default=None)
+        return { 'x_user_menu_support_url': url or False }
 
     @api.multi
     def set_x_user_menu_support_url(self):
