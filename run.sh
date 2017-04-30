@@ -6,15 +6,16 @@ cd `dirname $0`
 function container_full_name() {
     # workaround for docker-compose ps: https://github.com/docker/compose/issues/1513
     echo `docker inspect -f '{{if .State.Running}}{{.Name}}{{end}}' \
-            $(docker-compose ps -q) | cut -d/ -f2 | grep _${1}_`
+            $(docker-compose ps -q) | cut -d/ -f2 | grep -E "_${1}_[0-9]"`
 }
 
 function dc_dockerfiles_images() {
-    DOCKERFILES=`grep -E '^\s*build:' docker-compose.yml|cut -d: -f2 |sed 's/\s*\([^ ]*\)\s*/\1\/Dockerfile/'`
-    for dockerfile in $DOCKERFILES; do
-        echo `grep "^FROM " $dockerfile |cut -d' ' -f2`
+    DOCKERDIRS=`grep -E '^\s*build:' docker-compose.yml|cut -d: -f2 |xargs`
+    for dockerdir in $DOCKERDIRS; do
+        echo `grep "^FROM " ${dockerdir}/Dockerfile |cut -d' ' -f2|xargs`
     done
 }
+
 
 function dc_exec_or_run() {
     CONTAINER_SHORT_NAME=$1
@@ -74,15 +75,27 @@ case $1 in
             docker-compose run --rm odoo openerp-server -d db -u all --stop-after-init
         fi
         ;;
+    prune)
+        read -rp "Êtes-vous sûr de vouloir effacer les conteneurs et images Docker innutilisés ? (o/n)"
+        if [[ $REPLY =~ ^[oO]$ ]] ; then
+            # Note: la commande docker system prune n'est pas dispo sur les VPS OVH
+            # http://stackoverflow.com/questions/32723111/how-to-remove-old-and-unused-docker-images/32723285
+            exited_containers=$(docker ps -qa --no-trunc --filter "status=exited")
+            test "$exited_containers" != ""  && docker rm $exited_containers
+            dangling_images=$(docker images --filter "dangling=true" -q --no-trunc)
+            test "$dangling_images" != "" && docker rmi $dangling_images
+        fi
+        ;;
     debug)
         docker-compose stop odoo
         shift
         docker-compose run --rm odoo openerp-server \
-            --load=base,web,website \
-            --logfile=/dev/stdout --log-level=debug $*
+            --logfile=/dev/stdout --log-level=debug \
+            --debug --dev \
+            $*
         ;;
     bash)
-        dc_exec_or_run odoo bash
+        dc_exec_or_run odoo $*
         ;;
     shell)
         shift
@@ -90,14 +103,21 @@ case $1 in
         ;;
     psql|pg_dump|psqlrestore)
         case $1 in
-            psql)        cmd=psql;    option="-it";;
-            pg_dump)     cmd=pg_dump; option=     ;;
-            psqlrestore) cmd=psql;    option="-i" ;;
+            psql)        cmd=psql;         option="-it";;
+            pg_dump)     cmd="pg_dump -c"; option=     ;;
+            psqlrestore) cmd=psql;         option="-i" ;;
         esac
         POSTGRES_USER=`grep POSTGRES_USER docker-compose.yml|cut -d= -f2`
-        POSTGRES_PASS=`grep POSTGRES_PASS docker-compose.yml|cut -d= -f2`
+        POSTGRES_PASS=`grep POSTGRES_PASS docker-compose.yml|cut -d= -f2|xargs`
         DB_CONTAINER=`container_full_name db`
-        docker exec $option $DB_CONTAINER env PGPASSWORD="$POSTGRES_PASS" PGUSER=$POSTGRES_USER $cmd db
+        shift
+        if [ $# == 0 ] ; then set -- db ; fi # default database = db
+        docker exec $option $DB_CONTAINER env PGPASSWORD="$POSTGRES_PASS" PGUSER=$POSTGRES_USER $cmd $*
+        ;;
+    listmodules)
+        shift
+        if [ $# == 0 ] ; then set -- db ; fi # default database = db
+        echo "SELECT name FROM ir_module_module WHERE state='installed' ORDER BY name;" | $0 psqlrestore -A -t $*
         ;;
     build|config|create|down|events|exec|kill|logs|pause|port|ps|pull|restart|rm|run|start|stop|unpause|up)
         docker-compose $*
@@ -109,11 +129,14 @@ Utilisation : $0 [COMMANDE]
                : lance les conteneurs
   upgrade      : met à jour les images et les conteneurs Docker
   update       : met à jour la base Odoo suite à un changement de version mineure
+  prune        : efface les conteneurs et images Docker inutilisés
+  debug        : lance Odoo en mode debug
   bash         : lance bash sur le conteneur odoo
   shell        : lance Odoo shell (python)
   psql         : lance psql sur le conteneur db, en mode interactif
   pg_dump      : lance pg_dump sur le conteneur db
   psqlrestore  : permet de rediriger un dump vers la commande psql
+  listmodules  : list installed modules
   stop         : stoppe les conteneurs
   rm           : efface les conteneurs
   logs         : affiche les logs des conteneurs

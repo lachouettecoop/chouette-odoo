@@ -18,25 +18,23 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-{
-    'name'       : "User Menu for La Chouette Coop",
-    'summary'    : "Replace top right UserMenu: change support link, remvoe My Odoo Account link",
-    'category'   : 'Extra Tools',
-    'author'     : "La Chouette Coop",
-    'website'    : "http://www.lachouettecoop.fr",
-    'license'    : "AGPL-3",
-    'version'    : '9.0.0.0.1',
-    'installable': True,
-    'depends'    : [
-        'base_setup',
-        'base',
-        'web',
-    ],
-    'data'       : [
-        'data/user_menu_chouette.xml',
-        'views/res_config_view.xml',
-    ],
-    'qweb'       : [
-        'static/src/xml/base.xml',
-    ],
-}
+
+from openerp import api, fields, models
+
+class user_menu_chouette_config_settings(models.TransientModel):
+    """ Inherit the base setting to add the url to use for User Menu «Support» link. """
+
+    _inherit = 'base.config.settings'
+
+    x_user_menu_support_url = fields.Char("Menu Support", help="Lien «Support» dans le menu utilisateur")
+
+    @api.multi
+    def get_default_x_user_menu_support_url(self):
+        url = self.env["ir.config_parameter"].get_param("x_user_menu_support_url", default=None)
+        return { 'x_user_menu_support_url': url or False }
+
+    @api.multi
+    def set_x_user_menu_support_url(self):
+        for record in self:
+            self.env['ir.config_parameter'].set_param("x_user_menu_support_url", self.x_user_menu_support_url or '')
+
