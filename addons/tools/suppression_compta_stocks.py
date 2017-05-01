@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-Suppression du contenu des tables acount_* et stock_* (en gros)*
+Suppression du contenu des tables des comptes, des stockes, des
+commandes, des ventes et des achats.
+Essaye de garder la config et les templates.
 """
 
 import os
@@ -17,7 +19,7 @@ import psycopg2.extras
 
 def main(args):
     if len(args) < 1:
-        print "ERREUR: nom de la base de donnee non specifie"
+        print "ERREUR: nom de la base de données non specifié"
         sys.exit(-1)
     dbname = args[0]
 
@@ -29,6 +31,10 @@ def main(args):
 
     print "Recherche de dépendances"
     dependencies = db.not_null_foreign_key_tables()
+
+    for table in db.public_table_list():
+        if not table in dependencies:
+            dependencies[table] = []
 
     # Ajoute de dépendances à cause d'autres contraintes
     dependencies["account_invoice"].append("account_move")

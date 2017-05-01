@@ -113,8 +113,8 @@ case $1 in
             else
                 backup_and_update $1
             fi
+            $0
         fi
-        $0
         ;;
     prune)
         read -rp "Êtes-vous sûr de vouloir effacer les conteneurs et images Docker innutilisés ? (o/n)"
