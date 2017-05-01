@@ -43,9 +43,14 @@ def main(args):
                     or table.startswith("payment_transaction")
                     or table.startswith("purchase_order")
                     or table.startswith("procurement_order")) \
-                and not (table in ("stock_warehouse",
+                and not (table in ("pos_category",
+                                   "stock_incoterms",
                                    "stock_location",
-                                   "pos_category")
+                                   "stock_location_route",
+                                   "stock_location_route_categ",
+                                   "stock_picking_type",
+                                   "stock_route_warehouse",
+                                   "stock_warehouse")
                          or table.find("template") > 0
                          or table == "account_account"
                          or table.startswith("account_account_financial_report_type")
@@ -61,7 +66,8 @@ def main(args):
                          or table.startswith("account_payment_method")
                          or table.startswith("account_payment_term")
                          or table.startswith("account_tax")
-                         or table.startswith("pos_config")):
+                         or table.startswith("pos_config")
+                         or table.startswith("stock_config")):
             print "delete from", table
             db.execute("DELETE FROM " + table);
 
