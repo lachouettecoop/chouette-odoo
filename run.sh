@@ -29,10 +29,10 @@ function dc_exec_or_run() {
     shift
     if test -n "$CONTAINER_FULL_NAME" ; then
         # container already started
-        docker exec -it $CONTAINER_FULL_NAME $*
+        docker exec -it $CONTAINER_FULL_NAME "$@"
     else
         # container not started
-        docker-compose run --rm $CONTAINER_SHORT_NAME $*
+        docker-compose run --rm $CONTAINER_SHORT_NAME "$@"
     fi
 }
 
@@ -133,15 +133,15 @@ case $1 in
         docker-compose run --rm odoo openerp-server \
             --logfile=/dev/stdout --log-level=debug \
             --debug --dev \
-            $*
+            "$@"
         ;;
     bash)
-        dc_exec_or_run odoo $*
+        dc_exec_or_run odoo "$@"
         ;;
     shell)
         shift
         if [ $# == 0 ] ; then select_database; set -- $database ; fi
-        dc_exec_or_run odoo odoo.py shell -d $*
+        dc_exec_or_run odoo odoo.py shell -d "$@"
         ;;
     psql|pg_dump|psqlrestore)
         case $1 in
@@ -160,7 +160,7 @@ case $1 in
         fi
         shift
         if [ $# == 0 ] ; then select_database; set -- $database ; fi
-        docker exec $option $DB_CONTAINER env PGPASSWORD="$POSTGRES_PASS" PGUSER=$POSTGRES_USER $cmd $*
+        docker exec $option $DB_CONTAINER env PGPASSWORD="$POSTGRES_PASS" PGUSER=$POSTGRES_USER $cmd "$@"
         ;;
     listdb)
         echo "SELECT datname FROM pg_database WHERE datistemplate=false AND NOT datname in ('postgres','odoo');" | $0 psqlrestore -A -t postgres
@@ -168,10 +168,10 @@ case $1 in
     listmod)
         shift
         if [ $# == 0 ] ; then select_database; set -- $database ; fi
-        echo "SELECT name FROM ir_module_module WHERE state='installed' ORDER BY name;" | $0 psqlrestore -A -t $*
+        echo "SELECT name FROM ir_module_module WHERE state='installed' ORDER BY name;" | $0 psqlrestore -A -t "$@"
         ;;
     build|config|create|down|events|exec|kill|logs|pause|port|ps|pull|restart|rm|run|start|stop|unpause|up)
-        docker-compose $*
+        docker-compose "$@"
         ;;
     *)
         cat <<HELP
