@@ -38,12 +38,29 @@ def main(args):
         if (table.startswith("account_")
                     or table.startswith("stock_")
                     or table.startswith("pos_")
+                    or table.startswith("product_price_history")
                     or table.startswith("sale_order")
+                    or table.startswith("payment_transaction")
                     or table.startswith("purchase_order")
                     or table.startswith("procurement_order")) \
                 and not (table in ("stock_warehouse",
                                    "stock_location",
                                    "pos_category")
+                         or table.find("template") > 0
+                         or table == "account_account"
+                         or table.startswith("account_account_financial_report_type")
+                         or table.startswith("account_account_tag")
+                         or table.startswith("account_account_tax_default_rel")
+                         or table.startswith("account_account_type")
+                         or table.startswith("account_analytic_account")
+                         or table.startswith("account_financial_report")
+                         or table.startswith("account_fiscal_position")
+                         or table.startswith("account_bank_accounts_wizard")
+                         or table.startswith("account_config")
+                         or table.startswith("account_fiscal_position")
+                         or table.startswith("account_payment_method")
+                         or table.startswith("account_payment_term")
+                         or table.startswith("account_tax")
                          or table.startswith("pos_config")):
             print "delete from", table
             db.execute("DELETE FROM " + table);
