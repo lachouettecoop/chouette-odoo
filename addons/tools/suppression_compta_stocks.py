@@ -35,7 +35,16 @@ def main(args):
     dependencies["account_tax"].append("account_account")
 
     for table in toposort(dependencies):
-        if (table in ("sale_order", "purchase_order") or table.startswith("account_") or table.startswith("stock_")) and not table in ("stock_warehouse", "stock_location"):
+        if (table.startswith("account_")
+                    or table.startswith("stock_")
+                    or table.startswith("pos_")
+                    or table.startswith("sale_order")
+                    or table.startswith("purchase_order")
+                    or table.startswith("procurement_order")) \
+                and not (table in ("stock_warehouse",
+                                   "stock_location",
+                                   "pos_category")
+                         or table.startswith("pos_config")):
             print "delete from", table
             db.execute("DELETE FROM " + table);
 
