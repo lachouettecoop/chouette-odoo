@@ -38,7 +38,7 @@ rsync -avzL --checksum --delete $DATA_TO_USE .
 echo "Redémarrage de la base de donnée avec les données à jour"
 docker-compose up -d db
 
-if [[ ("$VIRTUAL_HOST" == "espace-membres.lachouettecoop.fr") || ("$VIRTUAL_HOST" == "sas.lachouettecoop.fr") ]] ; then
+if [[ ("$VIRTUAL_HOST" != "espace-membres.lachouettecoop.fr") && ("$VIRTUAL_HOST" != "sas.lachouettecoop.fr") ]] ; then
     echo "Désactivation des serveurs de mail autre que Mailcatcher:"
     sleep 4 # attente que la base de donnée soit lancée
     ./run.sh psqlrestore << SQL1
