@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
+Ce script était une alternative finalement non utilisée pour
+pour la migration de l'Odoo de l'Asso vers la SAS Coop.
+
 Suppression du contenu des tables des comptes, des stockes, des
 commandes, des ventes et des achats.
 Essaye de garder la config et les templates.
@@ -23,8 +26,8 @@ def main(args):
         sys.exit(-1)
     dbname = args[0]
 
-    if dbname == "db":
-        print u"ERREUR: interdit d'effacer la base db"
+    if dbname == "db" or "sas" in dbname:
+        print u"ERREUR: interdit d'effacer la base db ou sas"
         sys.exit(-1)
 
     db=Database(dbname)

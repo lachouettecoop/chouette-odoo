@@ -5,10 +5,11 @@ Try to dump Odoo database in a way suitable for diff
 after updating Odoo (openerp-server -d db -u all)
 """
 
+import sys
 import psycopg2
 
-
-db = psycopg2.connect("dbname=db")
+dbname = sys.argv[1] if len(sys.argv)>1 else "db"
+db = psycopg2.connect("dbname=" + dbname)
 cursor = db.cursor()
 
 
