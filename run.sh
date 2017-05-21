@@ -143,12 +143,19 @@ case $1 in
         if [ $# == 0 ] ; then select_database; set -- $database ; fi
         dc_exec_or_run odoo odoo.py shell -d "$@"
         ;;
-    psql|pg_dump|psqlrestore)
-        case $1 in
-            psql)        cmd=psql;         option="-it";;
-            pg_dump)     cmd="pg_dump -c"; option=     ;;
-            psqlrestore) cmd=psql;         option="-i" ;;
-        esac
+    psql|pg_dump)
+        cmd=$1
+        shift
+        if [ "$cmd" = "psql" ] ; then
+            # check if input file descriptor (0) is a terminal
+            if [ -t 0 ] ; then
+                option="-it";
+            else
+                option="-i";
+            fi
+        else
+            option="";
+        fi
         POSTGRES_USER=`grep POSTGRES_USER docker-compose.yml|cut -d= -f2`
         POSTGRES_PASS=`grep POSTGRES_PASS docker-compose.yml|cut -d= -f2|xargs`
         DB_CONTAINER=`container_full_name db`
@@ -158,17 +165,16 @@ case $1 in
             sleep 3
             DB_CONTAINER=`container_full_name db`
         fi
-        shift
         if [ $# == 0 ] ; then select_database; set -- $database ; fi
         docker exec $option $DB_CONTAINER env PGPASSWORD="$POSTGRES_PASS" PGUSER=$POSTGRES_USER $cmd "$@"
         ;;
     listdb)
-        echo "SELECT datname FROM pg_database WHERE datistemplate=false AND NOT datname in ('postgres','odoo');" | $0 psqlrestore -A -t postgres
+        echo "SELECT datname FROM pg_database WHERE datistemplate=false AND NOT datname in ('postgres','odoo');" | $0 psql -A -t postgres
         ;;
     listmod)
         shift
         if [ $# == 0 ] ; then select_database; set -- $database ; fi
-        echo "SELECT name FROM ir_module_module WHERE state='installed' ORDER BY name;" | $0 psqlrestore -A -t "$@"
+        echo "SELECT name FROM ir_module_module WHERE state='installed' ORDER BY name;" | $0 psql -A -t "$@"
         ;;
     build|config|create|down|events|exec|kill|logs|pause|port|ps|pull|restart|rm|run|start|stop|unpause|up)
         docker-compose "$@"
@@ -184,9 +190,8 @@ Utilisation : $0 [COMMANDE]
   debug        : lance Odoo en mode debug
   bash         : lance bash sur le conteneur odoo
   shell        : lance Odoo shell (python)
-  psql         : lance psql sur le conteneur db, en mode interactif
+  psql         : lance psql sur le conteneur db
   pg_dump      : lance pg_dump sur le conteneur db
-  psqlrestore  : permet de rediriger un dump vers la commande psql
   listdb       : liste les bases de données
   listmod      : liste les modules Odoo installés
   stop         : stope les conteneurs

@@ -41,11 +41,11 @@ docker-compose up -d db
 if [[ ("$VIRTUAL_HOST" != "espace-membres.lachouettecoop.fr") && ("$VIRTUAL_HOST" != "sas.lachouettecoop.fr") ]] ; then
     echo "Désactivation des serveurs de mail autre que Mailcatcher:"
     sleep 4 # attente que la base de donnée soit lancée
-    ./run.sh psqlrestore << SQL1
+    ./run.sh psql << SQL1
 UPDATE ir_mail_server SET active=false WHERE name NOT LIKE '%Mailcatcher%';
 SQL1
     echo "Activation des comptes de tests ADMIN,Compta,EDIT,Vente,Lambda:"
-    ./run.sh psqlrestore << SQL2
+    ./run.sh psql << SQL2
 UPDATE res_users SET active=true where login='Chouette_ADMIN@lachouettecoop.fr';
 UPDATE res_users SET active=true where login='Chouette_compta@lachouettecoop.fr';
 UPDATE res_users SET active=true where login='chouettevente1@lachouettecoop.fr';
