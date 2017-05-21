@@ -1,17 +1,40 @@
-# Modules python a instaler avec pip -r requirements.txt
+# Modules python a instaler avec
+#     pip -r requirements.txt
 
+# Modules python nécessaires pour installer des modules Odoo
 
-# Modules pythons nécessaires pour installer des modules Odoo 
-# utilisés par La Louve (FIXME: quels modules Odoo?):
-# https://gestion.lachouettecoop.fr/issues/1229
-ofxparse==0.14
-beautifulsoup4==4.5.1
+#======================================================================
+# ofxparse
+#----------------------------------------------------------------------
+# Nécessaire pour le module Odoo "account_bank_statement_import_ofx"
+# https://github.com/shewolfParis/odoo-production/tree/9.0/extra_addons/account_bank_statement_import_ofx
+# La version du module Odoo utilisée par La Louve est un fork du module OCA
+# (https://github.com/OCA/bank-statement-import/tree/9.0/account_bank_statement_import_ofx)
+# modifié par Sylvain LE GAL, notament pour un bug de "," à la place de "." non
+# supporté par la lib python ofxparse version 0.14.
+# Ce bug est logiquement corrigé dans ofxparse version 0.16, on prends donc cette version
+ofxparse==0.16
+
+#======================================================================
+# simplejson
+#----------------------------------------------------------------------
+# Déjà installé avec la commande "apt-get python-simplejson" dans le
+# fichier Dockerfile car son installation avec pip nécessiterait
+# d'avoir installé gcc.
+
+#======================================================================
+# Unidecode
+#----------------------------------------------------------------------
+# Nécessaire pour le module Odoo "account_export"
+Unidecode==0.4.20
+
+#======================================================================
+# FIXME: les modules pythons suivant sont
+# nécessaires pour quels modules Odoo ???
+#----------------------------------------------------------------------
 pyBarcode==0.7
-# Autres modules pythons aussi utilisés par La Louve:
 gdata==2.0.18
 jcconv==0.2.3
 Python-Chart==1.39
-qrcode==5.1
-#simplejson installed with apt-get python-simplejson in Dockerfile as it would requires gcc compiler
+qrcode==5.3
 suds-jurko==0.6
-Unidecode==0.4.20
