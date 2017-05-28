@@ -24,20 +24,25 @@ function dc_dockerfiles_images() {
 
 function dc_exec_or_run() {
     # Lance la commande $2 dans le container $1, avec 'exec' ou 'run' selon si le conteneur est déjà lancé ou non
+    local options=
+    while [[ "$1" == -* ]] ; do
+        options="$options $1"
+        shift
+    done
     local CONTAINER_SHORT_NAME=$1
     local CONTAINER_FULL_NAME=`container_full_name ${CONTAINER_SHORT_NAME}`
     shift
     if test -n "$CONTAINER_FULL_NAME" ; then
         # container already started
-        docker exec -it $CONTAINER_FULL_NAME "$@"
+        docker exec -it $options $CONTAINER_FULL_NAME "$@"
     else
         # container not started
-        docker-compose run --rm $CONTAINER_SHORT_NAME "$@"
+        docker-compose run --rm $options $CONTAINER_SHORT_NAME "$@"
     fi
 }
 
 function select_database() {
-    # Enregistre le nom de la base de données a utiliser dans la variable 'database'
+    # Enregistre le nom de la base de données à utiliser dans la variable 'database'
     readarray -t database < <( $0 listdb )
     if [ ${#database[@]} -gt 1 ] ; then
         echo "Quellle base de données utiliser?" > /dev/stderr
@@ -97,8 +102,8 @@ case $1 in
         read -rp "Êtes-vous sûr ? (o/n) "
         if [[ $REPLY =~ ^[oO]$ ]] ; then
             function backup_and_update () {
-                database=$1
-                backupfile="pg_dump-$database-`date '+%Y-%m-%dT%H:%M:%S'`.gz"
+                local database=$1
+                local backupfile="pg_dump-$database-`date '+%Y-%m-%dT%H:%M:%S'`.gz"
                 echo "Sauvegarde avant mise à jour de la base $1 dans $backupfile"
                 $0 pg_dump $database |gzip > $backupfile
                 docker-compose run --rm odoo openerp-server -u all --stop-after-init -d $database
@@ -138,6 +143,10 @@ case $1 in
     bash)
         dc_exec_or_run odoo "$@"
         ;;
+    bashroot)
+        shift
+        dc_exec_or_run --user=root odoo bash "$@"
+        ;;
     shell)
         shift
         if [ $# == 0 ] ; then select_database; set -- $database ; fi
@@ -159,7 +168,7 @@ case $1 in
         POSTGRES_USER=`grep POSTGRES_USER docker-compose.yml|cut -d= -f2`
         POSTGRES_PASS=`grep POSTGRES_PASS docker-compose.yml|cut -d= -f2|xargs`
         DB_CONTAINER=`container_full_name db`
-        if [ "$DB_CONTAINER" = "" ] ; then 
+        if [ "$DB_CONTAINER" = "" ] ; then
             echo "Démare le conteneur db" > /dev/stderr
             docker-compose up -d db > /dev/stderr
             sleep 3
@@ -176,6 +185,30 @@ case $1 in
         if [ $# == 0 ] ; then select_database; set -- $database ; fi
         echo "SELECT name FROM ir_module_module WHERE state='installed' ORDER BY name;" | $0 psql -A -t "$@"
         ;;
+    listtopmod)
+        # Liste les modules Odoo installés dont aucun autre module ne dépend
+        # et qui ne sont pas "auto_install" (cad non installés automatiquement
+        # si toutes leur dépendances sont installées).
+        # En théorie, partir d'une base vierge et installer uniquement
+        # la liste de modules retournée par cette commande devrait suffir
+        # pour installer la même liste complète de modules (liste retournée
+        # par la commande listmod).
+        shift
+        if [ $# == 0 ] ; then select_database; set -- $database ; fi
+        $0 psql -A -t "$@" << EOSQLTOPMOD
+            SELECT name FROM ir_module_module
+            WHERE state='installed'
+              AND auto_install=false
+              AND name NOT IN
+                (SELECT dep.name
+                 FROM ir_module_module_dependency AS dep
+                 INNER JOIN ir_module_module AS mod
+                 ON dep.module_id=mod.id
+                 WHERE mod.state='installed'
+                   AND mod.auto_install=false)
+            ORDER BY name;
+EOSQLTOPMOD
+        ;;
     build|config|create|down|events|exec|kill|logs|pause|port|ps|pull|restart|rm|run|start|stop|unpause|up)
         docker-compose "$@"
         ;;
@@ -189,11 +222,13 @@ Utilisation : $0 [COMMANDE]
   prune        : efface les conteneurs et images Docker inutilisés
   debug        : lance Odoo en mode debug
   bash         : lance bash sur le conteneur odoo
+  bashroot     : lance bash sur le conteneur odoo, en tant qu'utilisateur root
   shell        : lance Odoo shell (python)
   psql         : lance psql sur le conteneur db
   pg_dump      : lance pg_dump sur le conteneur db
   listdb       : liste les bases de données
   listmod      : liste les modules Odoo installés
+  listtopmod   : liste les modules Odoo installés dont aucun autre module ne dépend
   stop         : stope les conteneurs
   rm           : efface les conteneurs
   logs         : affiche les logs des conteneurs
