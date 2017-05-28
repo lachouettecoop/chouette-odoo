@@ -5,7 +5,7 @@ DATA_TO_USE=$1
 set -e
 
 DATA_TO_USE=$1
-VIRTUAL_HOST=`grep VIRTUAL_HOST docker-compose.yml|cut -d= -f2`
+VIRTUAL_HOST=`grep VIRTUAL_HOST docker-compose.yml | cut -d= -f2 | xargs`
 
 echo "Démarrage de la remise à zéro de cette instance d'Odoo."
 echo "... les données seront resynchronisées depuis " $DATA_TO_USE
@@ -39,19 +39,26 @@ echo "Redémarrage de la base de donnée avec les données à jour"
 docker-compose up -d db
 
 if [[ ("$VIRTUAL_HOST" != "espace-membres.lachouettecoop.fr") && ("$VIRTUAL_HOST" != "sas.lachouettecoop.fr") ]] ; then
-    echo "Désactivation des serveurs de mail autre que Mailcatcher:"
+    echo "Configuration du domaine $VIRTUAL_HOST"
     sleep 4 # attente que la base de donnée soit lancée
+    ./run.sh psql << SQL0
+        UPDATE ir_config_parameter SET value='$VIRTUAL_HOST'
+            WHERE key='mail.catchall.domain';
+        UPDATE ir_config_parameter SET value=regexp_replace(value, '://.*', '://') || '$VIRTUAL_HOST'
+            WHERE key='web.base.url';
+SQL0
+    echo "Désactivation des serveurs de mail autre que Mailcatcher:"
     ./run.sh psql << SQL1
-UPDATE ir_mail_server SET active=false WHERE name NOT LIKE '%Mailcatcher%';
+        UPDATE ir_mail_server SET active=false WHERE name NOT LIKE '%Mailcatcher%';
 SQL1
     echo "Activation des comptes de tests ADMIN,Compta,EDIT,Vente,Lambda:"
     ./run.sh psql << SQL2
-UPDATE res_users SET active=true where login='Chouette_ADMIN@lachouettecoop.fr';
-UPDATE res_users SET active=true where login='Chouette_compta@lachouettecoop.fr';
-UPDATE res_users SET active=true where login='chouettevente1@lachouettecoop.fr';
-UPDATE res_users SET active=true where login='chouettevente2@lachouettecoop.fr';
-UPDATE res_users SET active=true where login='chouettevente3@lachouettecoop.fr';
-UPDATE res_users SET active=true where login='utilisateurlambda@lachouettecoop.fr';
+        UPDATE res_users SET active=true where login='Chouette_ADMIN@lachouettecoop.fr';
+        UPDATE res_users SET active=true where login='Chouette_compta@lachouettecoop.fr';
+        UPDATE res_users SET active=true where login='chouettevente1@lachouettecoop.fr';
+        UPDATE res_users SET active=true where login='chouettevente2@lachouettecoop.fr';
+        UPDATE res_users SET active=true where login='chouettevente3@lachouettecoop.fr';
+        UPDATE res_users SET active=true where login='utilisateurlambda@lachouettecoop.fr';
 SQL2
 fi
 
