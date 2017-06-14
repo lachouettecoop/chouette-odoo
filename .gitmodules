@@ -1,0 +1,3 @@
+[submodule "AwesomeFoodCoops"]
+	path = AwesomeFoodCoops
+	url = https://github.com/AwesomeFoodCoops/odoo-production.git

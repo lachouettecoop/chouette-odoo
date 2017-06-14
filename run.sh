@@ -63,12 +63,15 @@ function select_database() {
 
 case $1 in
     "")
+        test -e data/odoo/etc/openerp-server.conf || $0 init
+        test -e AwesomeFoodCoops/odoo || $0 init
         docker-compose up -d
         ;;
     init)
         test -e docker-compose.yml || cp docker-compose.yml.dist docker-compose.yml
         test -e data/odoo/etc/openerp-server.conf \
             || cp data/odoo/etc/openerp-server.conf.dist data/odoo/etc/openerp-server.conf
+        test -e AwesomeFoodCoops/odoo || (git submodule init && git submodule update)
         docker-compose run --rm db chown -R postgres:postgres /var/lib/postgresql
         docker-compose run --rm -u root odoo bash -c \
             "chown -R odoo:odoo /etc/odoo/*.conf; chmod -R 777 /var/lib/odoo"
@@ -76,6 +79,8 @@ case $1 in
     upgrade)
         read -rp "Êtes-vous sûr de vouloir effacer et mettre à jour les images et conteneurs Docker ? (o/n) "
         if [[ $REPLY =~ ^[oO]$ ]] ; then
+            echo "Update git submodules (AwesomeFoodCoops)"
+            git submodule update
             old_release=`dc_exec_or_run odoo env|grep ODOO_RELEASE`
             echo "ODOO_RELEASE= $old_release"
             docker-compose pull
@@ -96,6 +101,10 @@ case $1 in
                 $0
             fi
         fi
+        ;;
+    git-pull)
+        shift
+        git pull --recurse-submodules "$@"
         ;;
     update)
         echo "Mise à jour des bases Odoo, voire https://doc.odoo.com/install/linux/updating/"

@@ -5,6 +5,7 @@ data:
     - ./data/odoo/etc:/etc/odoo
     - ./data/odoo/files:/var/lib/odoo
     - ./addons:/mnt/extra-addons
+    - ./AwesomeFoodCoops:/mnt/AwesomeFoodCoops:ro
 
 db:
   image: postgres:9.4

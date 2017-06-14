@@ -7,7 +7,7 @@ utilisez le site !*
 
 ## Pré-requis
 
-* récupérer le projet (`git clone`)
+* récupérer le projet (`git clone --recursive`)
 * avoir [Docker](http://docs.docker.com/) et [Docker Compose](http://docs.docker.com/compose/install/) installé
 
 ## Récupérer les données
