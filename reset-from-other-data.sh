@@ -42,10 +42,15 @@ if [[ ("$VIRTUAL_HOST" != "espace-membres.lachouettecoop.fr") && ("$VIRTUAL_HOST
     echo "Configuration du domaine $VIRTUAL_HOST"
     sleep 4 # attente que la base de donnée soit lancée
     ./run.sh psql << SQL0
-        UPDATE ir_config_parameter SET value='$VIRTUAL_HOST'
-            WHERE key='mail.catchall.domain';
         UPDATE ir_config_parameter SET value=regexp_replace(value, '://.*', '://') || '$VIRTUAL_HOST'
             WHERE key='web.base.url';
+
+        UPDATE ir_config_parameter SET value=regexp_replace(
+                '$VIRTUAL_HOST', 
+                '\.' || (SELECT value FROM ir_config_parameter 
+                         WHERE key='mail.catchall.domain') || '$', 
+                '')
+            WHERE key='mail.catchall.alias';
 SQL0
     echo "Désactivation des serveurs de mail autre que Mailcatcher:"
     ./run.sh psql << SQL1

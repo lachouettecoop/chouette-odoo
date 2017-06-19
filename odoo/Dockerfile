@@ -34,16 +34,4 @@ RUN sed -i -e 's/is_checked: false/is_checked: true/' \
     && sed -i -e 's/firstHour: 6,/firstHour: 8,/' \
         $ADDONS/web_calendar/static/lib/fullcalendar/js/fullcalendar.js
 
-# Notre serveur d'envoie d'email n'accepte que des expéditeurs (from)
-# associés à notre nom de domaine (lachouettecoop.fr)
-# On force donc les 'email_from' dans le serveur de mail d'Odoo
-# en modifiant la fonction ir_mail_server.build_email
-# -     email_from = email_from or tools.config.get('email_from')
-# +     reply_to = reply_to or email_from; email_from = self._get_default_bounce_address()
-# L'adresse _get_default_bounce_address() correspond au nom de
-# domaine configuré avec le paramètre 'mail.catchall.domain'
-# (voire le menu Odoo Configuration/Paramètres/Paramètres Systèmes)
-RUN sed -i -e "s/email_from = email_from or tools.config.get('email_from')/reply_to = reply_to or email_from; email_from = self._get_default_bounce_address()/" \
-     /usr/lib/python2.7/dist-packages/openerp/addons/base/ir/ir_mail_server.py
-
 USER odoo
