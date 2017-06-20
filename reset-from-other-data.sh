@@ -55,6 +55,7 @@ SQL0
     echo "Désactivation des serveurs de mail autre que Mailcatcher:"
     ./run.sh psql << SQL1
         UPDATE ir_mail_server SET active=false WHERE name NOT LIKE '%Mailcatcher%';
+        UPDATE fetchmail_server SET active=false WHERE active=true;
 SQL1
     echo "Activation des comptes de tests ADMIN,Compta,EDIT,Vente,Lambda:"
     ./run.sh psql << SQL2
