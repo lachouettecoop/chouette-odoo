@@ -161,7 +161,7 @@ case $1 in
         if [ $# == 0 ] ; then select_database; set -- $database ; fi
         dc_exec_or_run odoo odoo.py shell -d "$@"
         ;;
-    psql|pg_dump)
+    psql|pg_dump|pg_dumpall)
         cmd=$1
         shift
         if [ "$cmd" = "psql" ] ; then
@@ -183,7 +183,7 @@ case $1 in
             sleep 3
             DB_CONTAINER=`container_full_name db`
         fi
-        if [ $# == 0 ] ; then select_database; set -- $database ; fi
+        if [ $# == 0 ] && [ $cmd != "pg_dumpall" ]; then select_database; set -- $database ; fi
         docker exec $option $DB_CONTAINER env PGPASSWORD="$POSTGRES_PASS" PGUSER=$POSTGRES_USER $cmd "$@"
         ;;
     listdb)
