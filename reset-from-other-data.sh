@@ -50,7 +50,8 @@ if [[ ("$VIRTUAL_HOST" != "espace-membres.lachouettecoop.fr") && ("$VIRTUAL_HOST
                 '\.' || (SELECT value FROM ir_config_parameter 
                          WHERE key='mail.catchall.domain') || '$', 
                 '')
-            WHERE key='mail.catchall.alias';
+            WHERE key='mail.catchall.alias'
+              AND value!='catchall';
 SQL0
     echo "Désactivation des serveurs de mail autre que Mailcatcher:"
     ./run.sh psql << SQL1
