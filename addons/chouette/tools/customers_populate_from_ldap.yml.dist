@@ -1,0 +1,13 @@
+
+ldap:
+    url: ldap://ldap.mysite.com:389
+    username: cn=login,dc=mysite,dc=com
+    password: password
+    dn: dc=mysite,dc=com
+
+odoo:
+    db: dbname
+    url: http://odoo.mysite.com
+    username: login
+    password: password
+
