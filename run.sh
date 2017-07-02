@@ -67,6 +67,7 @@ case $1 in
         test -e AwesomeFoodCoops/odoo || $0 init
         docker-compose up -d
         ;;
+
     init)
         test -e docker-compose.yml || cp docker-compose.yml.dist docker-compose.yml
         test -e data/odoo/etc/openerp-server.conf \
@@ -76,6 +77,7 @@ case $1 in
         docker-compose run --rm -u root odoo bash -c \
             "chown -R odoo:odoo /etc/odoo/*.conf; chmod -R 777 /var/lib/odoo"
         ;;
+
     upgrade)
         read -rp "Êtes-vous sûr de vouloir effacer et mettre à jour les images et conteneurs Docker ? (o/n) "
         if [[ $REPLY =~ ^[oO]$ ]] ; then
@@ -102,10 +104,12 @@ case $1 in
             fi
         fi
         ;;
+
     git-pull)
         shift
         git pull --recurse-submodules "$@"
         ;;
+
     update)
         echo "Mise à jour des bases Odoo, voire https://doc.odoo.com/install/linux/updating/"
         read -rp "Êtes-vous sûr ? (o/n) "
@@ -130,6 +134,7 @@ case $1 in
             $0
         fi
         ;;
+
     prune)
         read -rp "Êtes-vous sûr de vouloir effacer les conteneurs et images Docker innutilisés ? (o/n)"
         if [[ $REPLY =~ ^[oO]$ ]] ; then
@@ -141,6 +146,7 @@ case $1 in
             test "$dangling_images" != "" && docker rmi $dangling_images
         fi
         ;;
+
     debug)
         docker-compose stop odoo
         shift
@@ -149,19 +155,23 @@ case $1 in
             --debug --dev \
             "$@"
         ;;
+
     bash)
         dc_exec_or_run odoo "$@"
         ;;
+
     bashroot)
         shift
         dc_exec_or_run --user=root odoo bash "$@"
         ;;
+
     shell)
         shift
         if [ $# == 0 ] ; then select_database; set -- $database ; fi
         dc_exec_or_run odoo odoo.py shell -d "$@"
         ;;
-    psql|pg_dump|pg_dumpall)
+
+    psql|pg_dump|pg_dumpall|dumpall)
         cmd=$1
         shift
         if [ "$cmd" = "psql" ] ; then
@@ -173,6 +183,9 @@ case $1 in
             fi
         else
             option="";
+            if [ "$cmd" = "dumpall" ] ; then
+                cmd=pg_dumpall
+            fi
         fi
         POSTGRES_USER=`grep POSTGRES_USER docker-compose.yml|cut -d= -f2`
         POSTGRES_PASS=`grep POSTGRES_PASS docker-compose.yml|cut -d= -f2|xargs`
@@ -186,14 +199,25 @@ case $1 in
         if [ $# == 0 ] && [ $cmd != "pg_dumpall" ]; then select_database; set -- $database ; fi
         docker exec $option $DB_CONTAINER env PGPASSWORD="$POSTGRES_PASS" PGUSER=$POSTGRES_USER $cmd "$@"
         ;;
+
+    restoreall)
+        shift
+        POSTGRES_USER=`grep POSTGRES_USER docker-compose.yml|cut -d= -f2`
+        POSTGRES_PASS=`grep POSTGRES_PASS docker-compose.yml|cut -d= -f2|xargs`
+        DB_CONTAINER=`container_full_name db`
+        docker exec -i $DB_CONTAINER env PGPASSWORD="$POSTGRES_PASS" PGUSER=$POSTGRES_USER psql "$@"
+        ;;
+
     listdb)
         echo "SELECT datname FROM pg_database WHERE datistemplate=false AND NOT datname in ('postgres','odoo');" | $0 psql -A -t postgres
         ;;
+
     listmod)
         shift
         if [ $# == 0 ] ; then select_database; set -- $database ; fi
         echo "SELECT name FROM ir_module_module WHERE state='installed' ORDER BY name;" | $0 psql -A -t "$@"
         ;;
+
     listtopmod)
         # Liste les modules Odoo installés dont aucun autre module ne dépend
         # et qui ne sont pas "auto_install" (cad non installés automatiquement
@@ -218,9 +242,11 @@ case $1 in
             ORDER BY name;
 EOSQLTOPMOD
         ;;
+
     build|config|create|down|events|exec|kill|logs|pause|port|ps|pull|restart|rm|run|start|stop|unpause|up)
         docker-compose "$@"
         ;;
+
     *)
         cat <<HELP
 Utilisation : $0 [COMMANDE]
@@ -235,6 +261,8 @@ Utilisation : $0 [COMMANDE]
   shell        : lance Odoo shell (python)
   psql         : lance psql sur le conteneur db
   pg_dump      : lance pg_dump sur le conteneur db
+  dumpall      : lance pg_dumpall sur le conteneur db
+  restoreall   : permet de restaure le contenu d'un dumpall
   listdb       : liste les bases de données
   listmod      : liste les modules Odoo installés
   listtopmod   : liste les modules Odoo installés dont aucun autre module ne dépend
