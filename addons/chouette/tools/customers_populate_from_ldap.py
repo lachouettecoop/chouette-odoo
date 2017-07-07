@@ -5,12 +5,14 @@ import sys
 import ldap
 import yaml
 import os.path
+import argparse
 import xmlrpclib
 from pprint import pprint
 
 """
 Update the list of Odoo customers (contacts stored in res.partner table)
-from the list of person in a LDAP directory.
+from the list of person in a LDAP directory using their associated
+barcode as matching key.
 
 The configuration file name should have the program file name with .yml
 extension, and contain:
@@ -30,11 +32,11 @@ extension, and contain:
 YML_CONF_FILE = os.path.splitext(sys.argv[0])[0] + ".yml"
 
 
-def main(args):
+def main(dry_run=False):
     conf = open_conf_file(YML_CONF_FILE)
     ldap_persons = search_ldap_persons(**conf["ldap"])
     odoo = OdooRPC(**conf["odoo"])
-    update_odoo_customers(odoo, map(ldap_person_to_odoo_customer, ldap_persons))
+    update_odoo_customers(odoo, map(ldap_person_to_odoo_customer, ldap_persons), dry_run)
 
 
 def ldap_person_to_odoo_customer(ldap_person):
@@ -52,42 +54,55 @@ def ldap_person_to_odoo_customer(ldap_person):
     }
 
 
-def update_odoo_customers(odoo, new_customers):
+def update_odoo_customers(odoo, new_customers, dry_run=False):
     fields = new_customers[0].keys()
-    old_customers_ids = odoo.search('res.partner',
-            [[['is_company', '=', False], ['customer', '=', True]]])
-    old_customers = odoo.read('res.partner',
-            [old_customers_ids], {'fields': fields})
+
+    old_customers = get_odoo_customers(odoo, fields)
 
     old_customers_dict = { customer["barcode"]:customer for customer in old_customers }
     new_customers_dict = { customer["barcode"]:customer for customer in new_customers }
 
-    create_or_update_odoo_new_customers(odoo, old_customers_dict, new_customers_dict)
-    deactivate_odoo_old_customers(odoo, old_customers_dict, new_customers_dict)
+    create_or_update_odoo_new_customers(odoo, old_customers_dict, new_customers_dict, dry_run)
+    deactivate_odoo_old_customers(odoo, old_customers_dict, new_customers_dict, dry_run)
 
 
-def create_or_update_odoo_new_customers(odoo, old_customers_dict, new_customers_dict):
-    for barcode, cstmr in new_customers_dict.items():
+def get_odoo_customers(odoo, fields):
+    # We need to search explicitely for additional active=False items because
+    # they are filtered out by default.
+    old_customers_ids = \
+        odoo.search('res.partner',
+            [[['is_company', '=', False], ['customer', '=', True]]]) \
+        + odoo.search('res.partner',
+            [[['is_company', '=', False], ['customer', '=', True], ['active', '=', False]]])
+    return odoo.read('res.partner',
+            [old_customers_ids], {'fields': fields})
+
+
+def create_or_update_odoo_new_customers(odoo, old_customers_dict, new_customers_dict, dry_run=False):
+    for barcode, new_cstmr in new_customers_dict.items():
         if not barcode:
-            print "# LDAP person without barcode:", cstmr["name"].encode("utf8"), cstmr["email"]
+            print "# LDAP person without barcode:", new_cstmr["name"].encode("utf8"), new_cstmr["email"]
         if barcode not in old_customers_dict:
-            print "+ create customer", cstmr["name"].encode("utf8"), cstmr["email"]
-            id = odoo.create('res.partner', [cstmr])
-            print "    => id", id
+            print "+ create customer", new_cstmr["name"].encode("utf8"), new_cstmr["email"]
+            if not dry_run:
+                id = odoo.create('res.partner', [new_cstmr])
+                print "    => id", id
         else:
             old_cstmr = old_customers_dict[barcode]
-            differences = {field:value for field,value in cstmr.items() if old_cstmr[field] != value}
+            differences = {field:value for field,value in new_cstmr.items() if old_cstmr[field] != value}
             if differences:
                 print ('! update customer ' + str(old_cstmr['id']) + " " + old_cstmr['name'] + ' set ' + str(differences)).encode("utf8")
-                odoo.write('res.partner', [[old_cstmr["id"]], differences])
+                if not dry_run:
+                    odoo.write('res.partner', [[old_cstmr["id"]], differences])
 
-def deactivate_odoo_old_customers(odoo, old_customers_dict, new_customers_dict):
-    for barcode,old_cstmr in old_customers_dict.items():
+def deactivate_odoo_old_customers(odoo, old_customers_dict, new_customers_dict, dry_run=False):
+    for barcode, old_cstmr in old_customers_dict.items():
         if not barcode:
             print "# Odoo customer without barcode:", old_cstmr["id"], old_cstmr["name"].encode("utf8"), old_cstmr["email"]
         elif barcode not in new_customers_dict and old_cstmr['active']:
             print '- deactivate customer', old_cstmr["id"], old_cstmr["name"].encode("utf8"), old_cstmr["email"]
-            odoo.write('res.partner', [[old_cstmr["id"]], {'active': False}])
+            if not dry_run:
+                odoo.write('res.partner', [[old_cstmr["id"]], {'active': False}])
 
 
 def search_ldap_persons(url, dn, username, password):
@@ -159,4 +174,8 @@ def open_conf_file(filename):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    parser = argparse.ArgumentParser(sys.argv[0], description="Synchonize Odoo customers from LDAP persons")
+    parser.add_argument('-d', '--dry-run', dest='dry_run', action='store_true', help="only print intended actions, don't actualy modify Odoo customers")
+    parser.set_defaults(dry_run=False)
+    args = parser.parse_args()
+    main(args.dry_run)
