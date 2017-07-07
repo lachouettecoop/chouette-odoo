@@ -69,24 +69,24 @@ def update_odoo_customers(odoo, new_customers):
 def create_or_update_odoo_new_customers(odoo, old_customers_dict, new_customers_dict):
     for barcode, cstmr in new_customers_dict.items():
         if not barcode:
-            print "# LDAP person without barcode:", cstmr["name"], cstmr["email"]
+            print "# LDAP person without barcode:", cstmr["name"].encode("utf8"), cstmr["email"]
         if barcode not in old_customers_dict:
-            print "+ create customer", cstmr["name"], cstmr["email"]
+            print "+ create customer", cstmr["name"].encode("utf8"), cstmr["email"]
             id = odoo.create('res.partner', [cstmr])
             print "    => id", id
         else:
             old_cstmr = old_customers_dict[barcode]
             differences = {field:value for field,value in cstmr.items() if old_cstmr[field] != value}
             if differences:
-                print '! update customer', old_cstmr['id'], old_cstmr['name'], 'set', differences
+                print ('! update customer ' + str(old_cstmr['id']) + " " + old_cstmr['name'] + ' set ' + str(differences)).encode("utf8")
                 odoo.write('res.partner', [[old_cstmr["id"]], differences])
 
 def deactivate_odoo_old_customers(odoo, old_customers_dict, new_customers_dict):
     for barcode,old_cstmr in old_customers_dict.items():
         if not barcode:
-            print "# Odoo customer without barcode:", old_cstmr["id"], old_cstmr["name"], old_cstmr["email"]
+            print "# Odoo customer without barcode:", old_cstmr["id"], old_cstmr["name"].encode("utf8"), old_cstmr["email"]
         elif barcode not in new_customers_dict and old_cstmr['active']:
-            print '- deactivate customer', old_cstmr["id"], old_cstmr["name"], old_cstmr["email"]
+            print '- deactivate customer', old_cstmr["id"], old_cstmr["name"].encode("utf8"), old_cstmr["email"]
             odoo.write('res.partner', [[old_cstmr["id"]], {'active': False}])
 
 
