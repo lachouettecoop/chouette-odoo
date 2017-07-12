@@ -118,7 +118,7 @@ case $1 in
                 local database=$1
                 local backupfile="pg_dump-$database-`date '+%Y-%m-%dT%H:%M:%S'`.gz"
                 echo "Sauvegarde avant mise à jour de la base $1 dans $backupfile"
-                $0 pg_dump $database |gzip > $backupfile
+                $0 pg_dump --clean $database |gzip > $backupfile
                 docker-compose run --rm odoo openerp-server -u all --stop-after-init -d $database
             }
             $0 init
@@ -201,6 +201,11 @@ case $1 in
         docker exec $option $DB_CONTAINER env PGPASSWORD="$POSTGRES_PASS" PGUSER=$POSTGRES_USER $cmd "$@"
         ;;
 
+    dumpfordiff)
+        select_database
+        $0 bash -c "/mnt/extra-addons/chouette/tools/pseudo_pg_dump_for_diff.py $database"
+        ;;
+
     restoreall)
         shift
         POSTGRES_USER=`grep POSTGRES_USER docker-compose.yml|cut -d= -f2`
@@ -264,6 +269,7 @@ Utilisation : $0 [COMMANDE]
   pg_dump      : lance pg_dump sur le conteneur db
   dumpall      : lance pg_dumpall sur le conteneur db
   restoreall   : permet de restaure le contenu d'un dumpall
+  dumpfordiff  : pseudo dump de la base dans un format plus facile a comparer textuellement
   listdb       : liste les bases de données
   listmod      : liste les modules Odoo installés
   listtopmod   : liste les modules Odoo installés dont aucun autre module ne dépend
