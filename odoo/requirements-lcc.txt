@@ -1,0 +1,30 @@
+# Modules python nécessaires pour installer des modules Odoo
+# utilisés par La Chouette Coop
+#
+# À instaler avec la commande (qui est exécutée par le Dockerfile)
+#     pip install -u -r requirements-lcc.txt
+
+#======================================================================
+# ofxparse, version plus récente car bug dans la version 0.14
+#----------------------------------------------------------------------
+# Nécessaire pour le module Odoo "account_bank_statement_import_ofx"
+# https://github.com/shewolfParis/odoo-production/tree/9.0/extra_addons/account_bank_statement_import_ofx
+# La version du module Odoo utilisée par La Louve est un fork du module OCA
+# (https://github.com/OCA/bank-statement-import/tree/9.0/account_bank_statement_import_ofx)
+# modifié par Sylvain LE GAL, notament pour un bug de "," à la place de "." non
+# supporté par la lib python ofxparse version 0.14.
+# Ce bug est logiquement corrigé dans ofxparse version 0.16, on prends donc cette version
+ofxparse==0.16
+
+#======================================================================
+# Unidecode
+#----------------------------------------------------------------------
+# Nécessaire pour le module Odoo "account_export"
+Unidecode==0.4.20
+
+#======================================================================
+# Barcode, QRCode
+#----------------------------------------------------------------------
+pyBarcode==0.7
+qrcode==5.3
+

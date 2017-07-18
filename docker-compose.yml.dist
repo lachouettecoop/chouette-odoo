@@ -4,7 +4,7 @@ data:
     - ./data/postgres:/var/lib/postgresql/data
     - ./data/odoo/etc:/etc/odoo
     - ./data/odoo/files:/var/lib/odoo
-    - ./addons:/mnt/extra-addons
+    - ./addons:/mnt/extra-addons:ro
     - ./AwesomeFoodCoops:/mnt/AwesomeFoodCoops:ro
 
 db:

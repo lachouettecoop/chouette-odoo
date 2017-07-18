@@ -1,0 +1,98 @@
+# Modification of the official Odoo 9.0 Dockerfile
+# (https://github.com/odoo/docker/blob/master/9.0/Dockerfile)
+# - to use a more recent version of debian nightly build Odoo package
+# - with the addition of patches for La Chouette Coop
+
+FROM debian:jessie
+MAINTAINER Odoo S.A. <info@odoo.com>
+
+# Install some deps, lessc and less-plugin-clean-css, and wkhtmltopdf
+RUN set -x; \
+        apt-get update \
+        && apt-get install -y --no-install-recommends \
+            ca-certificates \
+            curl \
+            node-less \
+            python-gevent \
+            python-pip \
+            python-renderpm \
+            python-support \
+            python-watchdog \
+        && curl -o wkhtmltox.deb -SL http://nightly.odoo.com/extra/wkhtmltox-0.12.1.2_linux-jessie-amd64.deb \
+        && echo '40e8b906de658a2221b15e4e8cd82565a47d7ee8 wkhtmltox.deb' | sha1sum -c - \
+        && dpkg --force-depends -i wkhtmltox.deb \
+        && apt-get -y install -f --no-install-recommends \
+        && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false -o APT::AutoRemove::SuggestsImportant=false npm \
+        && rm -rf /var/lib/apt/lists/* wkhtmltox.deb \
+        && pip install psycogreen==1.0
+
+# Install Odoo
+# && echo '4ff504f4b2a49667a0bc8bbca95079305d8108c8 odoo.deb' | sha1sum -c - \
+ENV ODOO_VERSION 9.0
+ENV ODOO_RELEASE 20170717
+RUN set -x; \
+        curl -o odoo.deb -SL http://nightly.odoo.com/${ODOO_VERSION}/nightly/deb/odoo_${ODOO_VERSION}c.${ODOO_RELEASE}_all.deb \
+        && dpkg --force-depends -i odoo.deb \
+        && apt-get update \
+        && apt-get -y install -f --no-install-recommends \
+        && rm -rf /var/lib/apt/lists/* odoo.deb
+
+# Copy entrypoint script and Odoo configuration file
+COPY ./entrypoint.sh /
+COPY ./openerp-server.conf /etc/odoo/
+RUN chown odoo /etc/odoo/openerp-server.conf
+
+# Mount /var/lib/odoo to allow restoring filestore and /mnt/extra-addons for users addons
+RUN mkdir -p /mnt/extra-addons \
+        && chown -R odoo /mnt/extra-addons
+VOLUME ["/var/lib/odoo", "/mnt/extra-addons"]
+
+# Expose Odoo services
+EXPOSE 8069 8071
+
+# Set the default config file
+ENV OPENERP_SERVER /etc/odoo/openerp-server.conf
+
+# Set default user when running the container
+USER odoo
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["openerp-server"]
+
+
+
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        python-simplejson \
+        python-ldap \
+        python-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements-lcc.txt
+RUN pip install -r /requirements-lcc.txt
+
+ENV ADDONS=/usr/lib/python2.7/dist-packages/openerp/addons
+
+# Fix pour un bug lors de la mise à jour de Odoo 9.0-20160324 à Odoo 9.0-20170207
+# et de l'éxécution de la commande de mise à jour de la base:
+#     openerp-server -d db -u all
+# on obtient l'exception:
+#     File "/usr/lib/python2.7/dist-packages/openerp/fields.py", line 628, in _add_trigger
+#         field = model._fields[name]
+#     KeyError: 'is_portal'
+# La clé 'is_portal' définie par le module 'portal', n'est pas trouvée dans le champ
+# 'website.menu.group_ids' , défini dans le module 'website'
+# Solution trouvée: faire en sorte que le module 'website' dépende du module 'portal':
+RUN sed -i -e "s/'depends': \[/'depends': \['portal', /" \
+        $ADDONS/website/__openerp__.py
+
+# Dans la vue web "Calendrier":
+# - activation par défaut de "Calendriers de tout le monde"
+# - début plage horaire à 8h
+RUN sed -i -e 's/is_checked: false/is_checked: true/' \
+        $ADDONS/calendar/static/src/js/base_calendar.js \
+    && sed -i -e 's/firstHour: 6,/firstHour: 8,/' \
+        $ADDONS/web_calendar/static/lib/fullcalendar/js/fullcalendar.js
+
+USER odoo

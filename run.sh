@@ -61,6 +61,54 @@ function select_database() {
     fi
 }
 
+function checkout_and_patch_AwesomeFoodCoops() {
+    # Checkout AwesomeFoodCoops git submodule
+    # et applique nos modifications spécifiques à la LCC
+    # dans une branche locale nommée "lcc".
+
+    test -e AwesomeFoodCoops/odoo || \
+        (git submodule init && git submodule update --recursive)
+
+    # Création d'un branche "lcc" où nous ferons nos changements
+    (cd AwesomeFoodCoops && (git checkout lcc || (git checkout 9.0 && git checkout -b lcc )))
+
+    pushd AwesomeFoodCoops/odoo
+
+    # Fix pour un bug lors de la mise à jour de Odoo 9.0-20160324 à Odoo 9.0-20170207
+    # et de l'éxécution de la commande de mise à jour de la base:
+    #     openerp-server -d db -u all
+    # on obtient l'exception:
+    #     File "/usr/lib/python2.7/dist-packages/openerp/fields.py", line 628, in _add_trigger
+    #         field = model._fields[name]
+    #     KeyError: 'is_portal'
+    # La clé 'is_portal' définie par le module 'portal', n'est pas trouvée dans le champ
+    # 'website.menu.group_ids' , défini dans le module 'website'
+    # Solution trouvée: faire en sorte que le module 'website' dépende du module 'portal':
+    grep  "'depends': \['portal'," addons/website/__openerp__.py >> /dev/null || ( \
+        sed -i -e "s/'depends': \[/'depends': \['portal', /" \
+            addons/website/__openerp__.py \
+        && git add addons/website/__openerp__.py  \
+        && git commit -m "LCC: make website addon depends on portal for -u all bug fix")
+
+    # Dans la vue web "Calendrier":
+    # - activation par défaut de "Calendriers de tout le monde"
+    grep "is_checked: false" addons/calendar/static/src/js/base_calendar.js && ( \
+        sed -i -e 's/is_checked: false/is_checked: true/' \
+            addons/calendar/static/src/js/base_calendar.js \
+        && git add addons/calendar/static/src/js/base_calendar.js \
+        && git commit -m "LCC: calendar addon: show all calendars by default")
+
+    # Dans la vue web "Calendrier":
+    # - début plage horaire à 8h
+    grep "firstHour: 6" addons/web_calendar/static/lib/fullcalendar/js/fullcalendar.js && ( \
+        sed -i -e 's/firstHour: 6,/firstHour: 8,/' \
+            addons/web_calendar/static/lib/fullcalendar/js/fullcalendar.js \
+        && git add addons/web_calendar/static/lib/fullcalendar/js/fullcalendar.js \
+        && git commit -m "LCC: calendar addon: firstHour: 8")
+
+    popd
+}
+
 case $1 in
     "")
         test -e data/odoo/etc/openerp-server.conf || $0 init
@@ -72,42 +120,93 @@ case $1 in
         test -e docker-compose.yml || cp docker-compose.yml.dist docker-compose.yml
         test -e data/odoo/etc/openerp-server.conf \
             || cp data/odoo/etc/openerp-server.conf.dist data/odoo/etc/openerp-server.conf
-        test -e AwesomeFoodCoops/odoo || (git submodule init && git submodule update)
         docker-compose run --rm db chown -R postgres:postgres /var/lib/postgresql
         docker-compose run --rm -u root odoo bash -c \
             "chown -R odoo:odoo /etc/odoo/*.conf; chmod -R 777 /var/lib/odoo"
+        checkout_and_patch_AwesomeFoodCoops
         ;;
 
     upgrade)
-        read -rp "Êtes-vous sûr de vouloir effacer et mettre à jour les images et conteneurs Docker ? (o/n) "
+        echo "Mise à jour:"
+        echo " - des images des conteneurs Docker"
+        echo " - des sources Odoo depuis le repository git AwesomeFoodCoops"
+        read -rp "Êtes-vous sûr ? (o/n) "
         if [[ $REPLY =~ ^[oO]$ ]] ; then
-            echo "Update git submodules (AwesomeFoodCoops)"
-            git submodule update
-            old_release=`dc_exec_or_run odoo env|grep ODOO_RELEASE`
-            echo "ODOO_RELEASE= $old_release"
+
+            # Pour Odoo nous utilisons:
+            # - soit une version venant d'une image Docker
+            # - soit directement les sources AwesomeFoodCoops/odoo
+            #   dont le volume est monté dans le conteneur.
+            #
+            # Pour la version d'Odoo contenue dans une image Docker,
+            # on détecte les changements de version en vérifiant la
+            # valeur de la variable d'environment ODOO_RELEASE.
+            #
+            # Pour la version d'Odoo AwesomeFoodCoops/odoo dont les sources
+            # sont gérées sous Git, on détecte les changements de version en
+            # vérifiant le dernier commit sur la branche 9.0 (la branche principale)
+            # La difficulté étant que nous travaillons dans une branche locale
+            # différente nommée "lcc".
+
+            echo "Fetch git submodule AwesomeFoodCoops 9.0 branch"
+            # get hash of previous last commit on 9.0 branch:
+            old_AwesomeFoodCoops_commit=`cd AwesomeFoodCoops && git log 9.0 -n 1 --pretty=format:"%H"`
+            echo "old_AwesomeFoodCoops_commit $old_AwesomeFoodCoops_commit"
+            # fetch localy remote update on 9.0 branch while staying in lcc branch:
+            (cd AwesomeFoodCoops && git checkout lcc && git fetch origin 9.0:9.0)
+            # get hash of last commit on 9.0 branch:
+            new_AwesomeFoodCoops_commit=`cd AwesomeFoodCoops && git log 9.0 -n 1 --pretty=format:"%H"`
+            echo "new_AwesomeFoodCoops_commit $new_AwesomeFoodCoops_commit"
+
+            echo "Get latest AwesomeFoodCoops Odoo requirements.txt and debian build scripts"
+            for buildfile in debian/postinst debian/control requirements.txt ; do
+                (cd AwesomeFoodCoops/odoo && git checkout 9.0 -- "$buildfile")
+                if diff "AwesomeFoodCoops/odoo/$buildfile" odoo/$buildfile ; then
+                    # copy it to odoo Docker image build directory:
+                    cat "AwesomeFoodCoops/odoo/$buildfile" > "odoo/$buildfile"
+                fi
+                # Reset them to version we where using in our local branch to not break following rebase"
+                (cd AwesomeFoodCoops/odoo && git reset HEAD "$buildfile")
+                (cd AwesomeFoodCoops/odoo && git checkout --  "$buildfile")
+            done
+
+            echo "Pull latest Docker images from Docker Hub"
+            old_release=`dc_exec_or_run odoo env|grep ODOO_RELEASE || true`
+            echo "old_release $old_release"
             docker-compose pull
             for image in `dc_dockerfiles_images`; do
                 docker pull $image
             done
+            echo "Build local Docker images"
             docker-compose build
+            echo "Stop and delete Dokcer containers"
             docker-compose stop
             docker-compose rm -f
-            new_release=`dc_exec_or_run odoo env|grep ODOO_RELEASE`
-            if [ "$new_release" != "$old_release" ] ; then
-                echo "***********************************************n"
-                echo "* NOUVELLE VERSION ODOO : $new_release"
-                echo "* IL FAUT METTRE À JOUR SA BASE DE DONNEE"
-                echo "***********************************************"
+
+            new_release=`dc_exec_or_run odoo env|grep ODOO_RELEASE || true`
+            echo "new_release $new_release"
+
+            # Now that Odoo container is stopped we can update its sources,
+            # rebasing our local branch on the latest 9.0 branch:
+            echo "Update our local lcc branch of AwesomeFoodCoops Odoo sources"
+            (cd AwesomeFoodCoops && git checkout lcc && git rebase 9.0)
+
+            if [ "$new_release" != "$old_release" -o "$new_AwesomeFoodCoops_commit" != "$old_AwesomeFoodCoops_commit" ] ; then
+                echo "**************************************************"
+                if [ "$new_release" != "$old_release" ] ; then
+                    echo "* NOUVELLE VERSION ODOO : $new_release"
+                fi
+                if [ "$new_AwesomeFoodCoops_commit" != "$old_AwesomeFoodCoops_commit" ] ; then
+                    echo "* NOUVEAU COMMIT AwesomeFoodCoops : $new_AwesomeFoodCoops_commit"
+                fi
+                echo "* IL FAUT METTRE À JOUR LA BASE DE DONNEE D'ODOO"
+                echo "**************************************************"
                 $0 update
             else
+                # Relaunch normally:
                 $0
             fi
         fi
-        ;;
-
-    git-pull)
-        shift
-        git pull --recurse-submodules "$@"
         ;;
 
     update)

@@ -1,0 +1,90 @@
+# Modification of the official Odoo 9.0 Dockerfile
+# (https://github.com/odoo/docker/blob/master/9.0/Dockerfile)
+# - to use mounted sources from AwesomeFoodCoops instead of
+#   installing Odoo nightly deb package.
+
+FROM debian:jessie
+MAINTAINER La Chouette Coop
+
+# Install some deps, lessc and less-plugin-clean-css, and wkhtmltopdf
+RUN set -x; \
+        apt-get update \
+        && apt-get install -y --no-install-recommends \
+            ca-certificates \
+            curl \
+            node-less \
+            python-gevent \
+            python-pip \
+            python-renderpm \
+            python-support \
+            python-watchdog \
+        && curl -o wkhtmltox.deb -SL http://nightly.odoo.com/extra/wkhtmltox-0.12.1.2_linux-jessie-amd64.deb \
+        && echo '40e8b906de658a2221b15e4e8cd82565a47d7ee8 wkhtmltox.deb' | sha1sum -c - \
+        && dpkg --force-depends -i wkhtmltox.deb \
+        && apt-get -y install -f --no-install-recommends \
+        && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false -o APT::AutoRemove::SuggestsImportant=false npm \
+        && rm -rf /var/lib/apt/lists/* wkhtmltox.deb \
+        && pip install psycogreen==1.0
+
+COPY ./openerp-server.conf /etc/odoo/
+COPY ./entrypoint.sh debian/control debian/postinst requirements-odoo.txt requirements-lcc.txt /
+
+# Install dependencies required for Odoo and its configuration
+RUN set -x; \
+        apt-get update \
+        # install packages listed in "Depends:" section of Odoo debian "control" file:
+        && (awk '/^Depends:$/{flag=1;next}/^[^ ]/{flag=0}flag' control | tr , " " |grep -v '\${' | xargs apt-get install -y --no-install-recommends) \
+        # install other Odoo dependencies
+        # - python packages for wich debian version satisfies Odoo requirements, like gdata, pychart
+        # - dependencies for some Odoo addons we use (like ldap)
+        # - "build" and "dev" packages required later to build other python requirements using "pip install"
+        && apt-get install -y --no-install-recommends \
+            python-simplejson \
+            postgresql \
+            python-gdata \
+            python-pychart \
+            libxml2  libldap-2.4-2 libsasl2-2 \
+            libopenjpeg5 libtiffxx5 libfreetype6 \
+            python-dev build-essential file \
+            libxml2-dev libxslt-dev libldap2-dev libsasl2-dev libpq-dev \
+            libjpeg-dev libopenjpeg-dev libtiff-dev libfreetype6-dev libwebp-dev liblcms2-dev \
+        # filter requirements-odoo.txt to comment out items also presents in requirements-lcc.txt
+        && (for name in `awk -F== '/^[a-zA-Z]/ {print $1}' requirements-lcc.txt`; do sed -i -e 's/^'${name}'==/#'${name}'==/' requirements-odoo.txt; done) \
+        # install python packages listed in requirements-odoo.txt or requirements-lcc.txt
+        && (cat requirements-odoo.txt requirements-lcc.txt | sed -e 's/^requests=/#requests=/' > requirements.txt) \
+        && pip install -U -r /requirements.txt \
+        # purge debian packages that where only needed to build python packages with "pip install"
+        && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+            -o APT::AutoRemove::SuggestsImportant=false \
+            build-essential \
+            libc6-dev libc-dev gcc g++ make dpkg-dev \
+            libxml2-dev libxslt-dev libldap2-dev libsasl2-dev libpq-dev \
+            libjpeg-dev libopenjpeg-dev libtiff-dev libfreetype6-dev libwebp-dev liblcms2-dev \
+            python-dev \
+        && rm -rf /var/lib/apt/lists/* \
+        # Odoo configuration:
+        && chmod +x /postinst \
+        # "sync" needed to avoid random "Text file busy" error when trying to execute the file just after chmod:
+        && sync \
+        && /postinst configure \
+        && chown odoo /etc/odoo/openerp-server.conf \
+        # Reference Odoo installation and addons from mounted Docker volumes:
+        && mkdir -p /mnt/extra-addons \
+        && chown -R odoo /mnt/extra-addons \
+        && mkdir -p /mnt/AwesomeFoodCoops/odoo \
+        && ln -s /mnt/AwesomeFoodCoops/odoo /usr/lib/python2.7/dist-packages/openerp \
+        && ln -s /mnt/AwesomeFoodCoops/odoo/openerp-server /usr/local/bin/openerp-server
+
+VOLUME ["/var/lib/odoo", "/mnt/extra-addons", "/mnt/AwesomeFoodCoops"]
+
+## Expose Odoo services
+EXPOSE 8069 8071
+
+## Set the default config file
+ENV OPENERP_SERVER /etc/odoo/openerp-server.conf
+
+## Set default user when running the container
+USER odoo
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["openerp-server"]
