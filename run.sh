@@ -70,9 +70,9 @@ function checkout_and_patch_AwesomeFoodCoops() {
         (git submodule init && git submodule update --recursive)
 
     # Création d'un branche "lcc" où nous ferons nos changements
-    (cd AwesomeFoodCoops && (git checkout lcc || (git checkout 9.0 && git checkout -b lcc )))
+    (cd AwesomeFoodCoops && (git checkout lcc 2> /dev/null || (git checkout 9.0 && git checkout -b lcc )))
 
-    pushd AwesomeFoodCoops/odoo
+    pushd AwesomeFoodCoops/odoo > /dev/null
 
     # Fix pour un bug lors de la mise à jour de Odoo 9.0-20160324 à Odoo 9.0-20170207
     # et de l'éxécution de la commande de mise à jour de la base:
@@ -106,7 +106,31 @@ function checkout_and_patch_AwesomeFoodCoops() {
         && git add addons/web_calendar/static/lib/fullcalendar/js/fullcalendar.js \
         && git commit -m "LCC: calendar addon: firstHour: 8")
 
-    popd
+    popd > /dev/null
+}
+
+function cleanup_db_after_update() {
+    # nétoie la base  Odoo $1 des données créées automatiquement depuis
+    # le code source d'Odoo quand la base est mise à jour avec la commande
+    #       openerp-server -u all
+    $0 psql $1 << EO_UPDATE_CLEANUP
+        DO
+        \$\$
+        BEGIN
+            IF EXISTS (SELECT * FROM pg_tables WHERE tablename='website_menu' AND schemaname='public')
+            THEN
+                -- remove website_menu "Shop","Blog" and "Contact us"
+                DELETE FROM website_menu
+                WHERE url in ('/shop', '/blog/1', '/page/contactus')
+                  -- check also that these items have just been created by the system:
+                  AND create_date > (current_timestamp - '0.5 day'::interval)
+                  AND create_uid=1
+                  AND write_date=create_date
+                  AND write_uid=create_uid;
+            END IF;
+        END
+        \$\$;
+EO_UPDATE_CLEANUP
 }
 
 case $1 in
@@ -151,21 +175,21 @@ case $1 in
             echo "Fetch git submodule AwesomeFoodCoops 9.0 branch"
             # get hash of previous last commit on 9.0 branch:
             old_AwesomeFoodCoops_commit=`cd AwesomeFoodCoops && git log 9.0 -n 1 --pretty=format:"%H"`
-            echo "old_AwesomeFoodCoops_commit $old_AwesomeFoodCoops_commit"
+            echo "old AwesomeFoodCoops commit $old_AwesomeFoodCoops_commit"
             # fetch localy remote update on 9.0 branch while staying in lcc branch:
             (cd AwesomeFoodCoops && git checkout lcc && git fetch origin 9.0:9.0)
             # get hash of last commit on 9.0 branch:
             new_AwesomeFoodCoops_commit=`cd AwesomeFoodCoops && git log 9.0 -n 1 --pretty=format:"%H"`
-            echo "new_AwesomeFoodCoops_commit $new_AwesomeFoodCoops_commit"
+            echo "new AwesomeFoodCoops commit $new_AwesomeFoodCoops_commit"
 
             echo "Get latest AwesomeFoodCoops Odoo requirements.txt and debian build scripts"
             for buildfile in debian/postinst debian/control requirements.txt ; do
                 (cd AwesomeFoodCoops/odoo && git checkout 9.0 -- "$buildfile")
-                if diff "AwesomeFoodCoops/odoo/$buildfile" odoo/$buildfile ; then
+                if diff "AwesomeFoodCoops/odoo/$buildfile" odoo/$buildfile > /dev/null ; then
                     # copy it to odoo Docker image build directory:
                     cat "AwesomeFoodCoops/odoo/$buildfile" > "odoo/$buildfile"
                 fi
-                # Reset them to version we where using in our local branch to not break following rebase"
+                # Reset it to the version we where using in our local branch to not break following  gitrebase cmd"
                 (cd AwesomeFoodCoops/odoo && git reset HEAD "$buildfile")
                 (cd AwesomeFoodCoops/odoo && git checkout --  "$buildfile")
             done
@@ -219,6 +243,7 @@ case $1 in
                 echo "Sauvegarde avant mise à jour de la base $1 dans $backupfile"
                 $0 pg_dump --clean $database |gzip > $backupfile
                 docker-compose run --rm odoo openerp-server -u all --stop-after-init -d $database
+                cleanup_db_after_update $database
             }
             $0 init
             docker-compose stop odoo

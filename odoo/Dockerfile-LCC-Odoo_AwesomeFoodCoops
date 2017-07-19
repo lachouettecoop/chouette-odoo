@@ -27,7 +27,7 @@ RUN set -x; \
         && pip install psycogreen==1.0
 
 COPY ./openerp-server.conf /etc/odoo/
-COPY ./entrypoint.sh debian/control debian/postinst requirements-odoo.txt requirements-lcc.txt /
+COPY ./entrypoint.sh debian/control debian/postinst requirements.txt requirements-lcc.txt /
 
 # Install dependencies required for Odoo and its configuration
 RUN set -x; \
@@ -48,11 +48,12 @@ RUN set -x; \
             python-dev build-essential file \
             libxml2-dev libxslt-dev libldap2-dev libsasl2-dev libpq-dev \
             libjpeg-dev libopenjpeg-dev libtiff-dev libfreetype6-dev libwebp-dev liblcms2-dev \
-        # filter requirements-odoo.txt to comment out items also presents in requirements-lcc.txt
-        && (for name in `awk -F== '/^[a-zA-Z]/ {print $1}' requirements-lcc.txt`; do sed -i -e 's/^'${name}'==/#'${name}'==/' requirements-odoo.txt; done) \
-        # install python packages listed in requirements-odoo.txt or requirements-lcc.txt
-        && (cat requirements-odoo.txt requirements-lcc.txt | sed -e 's/^requests=/#requests=/' > requirements.txt) \
-        && pip install -U -r /requirements.txt \
+        # filter requirements.txt to comment out items also presents in requirements-lcc.txt
+        && (for name in `awk -F== '/^[a-zA-Z]/ {print $1}' requirements-lcc.txt`; do sed -i -e 's/^'${name}'==/#'${name}'==/' requirements.txt; done) \
+        # install python packages listed in requirements.txt or requirements-lcc.txt 
+        # except "requests" package that breaks pip
+        && (cat requirements.txt requirements-lcc.txt | sed -e 's/^requests=/#requests=/' > requirements-combined.txt) \
+        && pip install -U -r /requirements-combined.txt \
         # purge debian packages that where only needed to build python packages with "pip install"
         && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
             -o APT::AutoRemove::SuggestsImportant=false \
