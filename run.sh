@@ -109,37 +109,15 @@ function checkout_and_patch_AwesomeFoodCoops() {
     popd > /dev/null
 }
 
-function cleanup_db_after_update() {
-    # nétoie la base  Odoo $1 des données créées automatiquement depuis
-    # le code source d'Odoo quand la base est mise à jour avec la commande
-    #       openerp-server -u all
-    $0 psql $1 << EO_UPDATE_CLEANUP
-        DO
-        \$\$
-        BEGIN
-            IF EXISTS (SELECT * FROM pg_tables WHERE tablename='website_menu' AND schemaname='public')
-            THEN
-                -- remove website_menu "Shop","Blog" and "Contact us"
-                DELETE FROM website_menu
-                WHERE url in ('/shop', '/blog/1', '/page/contactus')
-                  -- check also that these items have just been created by the system:
-                  AND create_date > (current_timestamp - '0.5 day'::interval)
-                  AND create_uid=1
-                  AND write_date=create_date
-                  AND write_uid=create_uid;
-            END IF;
-        END
-        \$\$;
-EO_UPDATE_CLEANUP
-}
-
 case $1 in
+    #-------------------------------------------------------------------------
     "")
         test -e data/odoo/etc/openerp-server.conf || $0 init
         test -e AwesomeFoodCoops/odoo || $0 init
         docker-compose up -d
         ;;
 
+    #-------------------------------------------------------------------------
     init)
         test -e docker-compose.yml || cp docker-compose.yml.dist docker-compose.yml
         test -e data/odoo/etc/openerp-server.conf \
@@ -150,6 +128,7 @@ case $1 in
         checkout_and_patch_AwesomeFoodCoops
         ;;
 
+    #-------------------------------------------------------------------------
     upgrade)
         echo "Mise à jour:"
         echo " - des images des conteneurs Docker"
@@ -189,7 +168,8 @@ case $1 in
                     # copy it to odoo Docker image build directory:
                     cat "AwesomeFoodCoops/odoo/$buildfile" > "odoo/$buildfile"
                 fi
-                # Reset it to the version we where using in our local branch to not break following  gitrebase cmd"
+                # Reset it to the version we where using in our local branch
+                # to not break following  gitrebase cmd"
                 (cd AwesomeFoodCoops/odoo && git reset HEAD "$buildfile")
                 (cd AwesomeFoodCoops/odoo && git checkout --  "$buildfile")
             done
@@ -219,13 +199,15 @@ case $1 in
                 echo "**************************************************"
                 if [ "$new_release" != "$old_release" ] ; then
                     echo "* NOUVELLE VERSION ODOO : $new_release"
+                    modules="all"
                 fi
                 if [ "$new_AwesomeFoodCoops_commit" != "$old_AwesomeFoodCoops_commit" ] ; then
                     echo "* NOUVEAU COMMIT AwesomeFoodCoops : $new_AwesomeFoodCoops_commit"
+                    modules=`$0 modified_addons "$old_AwesomeFoodCoops_commit" "$new_AwesomeFoodCoops_commit"`
                 fi
                 echo "* IL FAUT METTRE À JOUR LA BASE DE DONNEE D'ODOO"
                 echo "**************************************************"
-                $0 update
+                $0 update "all" $modules
             else
                 # Relaunch normally:
                 $0
@@ -233,32 +215,87 @@ case $1 in
         fi
         ;;
 
+    #-------------------------------------------------------------------------
+    modified_addons)
+        # Retourne la liste des addons modifiés dans le repository
+        # AwesomeFoodCoops entre la révision passée en paramètre $1
+        shift
+        if [ -z "$1" ] ; then
+            echo "ERREUR: version AwesomeFoodCoops non spécifiée" > /dev/stderr
+            exit -1
+        else
+            # Filtre les répertoires contenus souns un répertoire
+            # dont le nom se termine par "addons":
+            ((cd AwesomeFoodCoops && git diff --name-only "$@") \
+                | awk '{ if (match($0,/.*addons\/([^/]*)\//,m)) print m[1] }' \
+                | sort | uniq)
+        fi
+        ;;
+
+
+    #-------------------------------------------------------------------------
     update)
+        # Mise à jour de la base Odoo en le lancant avec la commande -u $2
+        # sur la base $1
+        shift
+        databases="$1"
+        modules="$2"
+        if [ -z "$modules" ] ; then
+            modules="all"
+        fi
+        if [ -z "$database" -o "$database" = "all" ] ; then
+            databases=`$0 listdb`
+        fi
         echo "Mise à jour des bases Odoo, voire https://doc.odoo.com/install/linux/updating/"
+        echo "  databases = $databases"
+        echo "  modules = $modules"
         read -rp "Êtes-vous sûr ? (o/n) "
         if [[ $REPLY =~ ^[oO]$ ]] ; then
             function backup_and_update () {
                 local database=$1
+                local modules=$2
                 local backupfile="pg_dump-$database-`date '+%Y-%m-%dT%H:%M:%S'`.gz"
-                echo "Sauvegarde avant mise à jour de la base $1 dans $backupfile"
-                $0 pg_dump --clean $database |gzip > $backupfile
-                docker-compose run --rm odoo openerp-server -u all --stop-after-init -d $database
-                cleanup_db_after_update $database
+                echo "Sauvegarde avant mise à jour de la base $database dans $backupfile"
+                $0 pg_dump --clean $database |gzip > "$backupfile"
+                docker-compose run --rm odoo openerp-server -u "$modules" --stop-after-init -d "$database"
+                $0 cleanup "$database"
             }
             $0 init
             docker-compose stop odoo
-            shift
-            if [ $# == 0 ] ; then
-                for database in `$0 listdb` ; do
-                    backup_and_update $database
-                done
-            else
-                backup_and_update $1
-            fi
+            for database in $databases ; do
+                backup_and_update "$database" "$modules"
+            done
             $0
         fi
         ;;
 
+    #-------------------------------------------------------------------------
+    cleanup)
+        # nétoie la base  Odoo $1 des données créées automatiquement depuis
+        # le code source d'Odoo quand la base est mise à jour avec la commande
+        #       openerp-server -u all
+        shift
+        $0 psql "$@" << EO_DB_CLEANUP
+            DO
+            \$\$
+            BEGIN
+                IF EXISTS (SELECT * FROM pg_tables WHERE tablename='website_menu' AND schemaname='public')
+                THEN
+                    -- remove website_menu "Shop","Blog" and "Contact us"
+                    DELETE FROM website_menu
+                    WHERE url in ('/shop', '/blog/1', '/page/contactus')
+                      -- check also that these items have just been created by the system:
+                      AND create_date > (current_timestamp - '0.5 day'::interval)
+                      AND create_uid=1
+                      AND write_date=create_date
+                      AND write_uid=create_uid;
+                END IF;
+            END
+            \$\$;
+EO_DB_CLEANUP
+        ;;
+
+    #-------------------------------------------------------------------------
     prune)
         read -rp "Êtes-vous sûr de vouloir effacer les conteneurs et images Docker innutilisés ? (o/n)"
         if [[ $REPLY =~ ^[oO]$ ]] ; then
@@ -271,6 +308,7 @@ case $1 in
         fi
         ;;
 
+    #-------------------------------------------------------------------------
     debug)
         docker-compose stop odoo
         shift
@@ -280,21 +318,25 @@ case $1 in
             "$@"
         ;;
 
+    #-------------------------------------------------------------------------
     bash)
         dc_exec_or_run odoo "$@"
         ;;
 
+    #-------------------------------------------------------------------------
     bashroot)
         shift
         dc_exec_or_run --user=root odoo bash "$@"
         ;;
 
+    #-------------------------------------------------------------------------
     shell)
         shift
         if [ $# == 0 ] ; then select_database; set -- $database ; fi
         dc_exec_or_run odoo odoo.py shell -d "$@"
         ;;
 
+    #-------------------------------------------------------------------------
     psql|pg_dump|pg_dumpall|dumpall)
         cmd=$1
         shift
@@ -325,11 +367,13 @@ case $1 in
         docker exec $option $DB_CONTAINER env PGPASSWORD="$POSTGRES_PASS" PGUSER=$POSTGRES_USER $cmd "$@"
         ;;
 
+    #-------------------------------------------------------------------------
     dumpfordiff)
         select_database
         $0 bash -c "/mnt/extra-addons/chouette/tools/pseudo_pg_dump_for_diff.py $database"
         ;;
 
+    #-------------------------------------------------------------------------
     restoreall)
         shift
         POSTGRES_USER=`grep POSTGRES_USER docker-compose.yml|cut -d= -f2`
@@ -338,16 +382,19 @@ case $1 in
         docker exec -i $DB_CONTAINER env PGPASSWORD="$POSTGRES_PASS" PGUSER=$POSTGRES_USER psql "$@"
         ;;
 
+    #-------------------------------------------------------------------------
     listdb)
         echo "SELECT datname FROM pg_database WHERE datistemplate=false AND NOT datname in ('postgres','odoo');" | $0 psql -A -t postgres
         ;;
 
+    #-------------------------------------------------------------------------
     listmod)
         shift
         if [ $# == 0 ] ; then select_database; set -- $database ; fi
         echo "SELECT name FROM ir_module_module WHERE state='installed' ORDER BY name;" | $0 psql -A -t "$@"
         ;;
 
+    #-------------------------------------------------------------------------
     listtopmod)
         # Liste les modules Odoo installés dont aucun autre module ne dépend
         # et qui ne sont pas "auto_install" (cad non installés automatiquement
@@ -373,10 +420,12 @@ case $1 in
 EOSQLTOPMOD
         ;;
 
+    #-------------------------------------------------------------------------
     build|config|create|down|events|exec|kill|logs|pause|port|ps|pull|restart|rm|run|start|stop|unpause|up)
         docker-compose "$@"
         ;;
 
+    #-------------------------------------------------------------------------
     *)
         cat <<HELP
 Utilisation : $0 [COMMANDE]
