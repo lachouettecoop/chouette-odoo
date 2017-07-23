@@ -31,6 +31,9 @@ PUBLIC_PATH=(
     "/web/image/51472",
     "/web/image/59179",
     "/longpolling/poll",
+    "/page/faq-technique",
+    "/web/image/101011",
+    "/web/image/101012",
 )
 
 PUBLIC_WEB_CONTENT=(
