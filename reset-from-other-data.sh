@@ -60,12 +60,21 @@ SQL0
 SQL1
     echo "Activation des comptes de tests ADMIN,Compta,EDIT,Vente,Lambda:"
     ./run.sh psql << SQL2
-        UPDATE res_users SET active=true where login='Chouette_ADMIN@lachouettecoop.fr';
+        -- espace-membres
         UPDATE res_users SET active=true where login='Chouette_compta@lachouettecoop.fr';
         UPDATE res_users SET active=true where login='chouettevente1@lachouettecoop.fr';
         UPDATE res_users SET active=true where login='chouettevente2@lachouettecoop.fr';
         UPDATE res_users SET active=true where login='chouettevente3@lachouettecoop.fr';
         UPDATE res_users SET active=true where login='utilisateurlambda@lachouettecoop.fr';
+
+        -- sas
+        UPDATE res_users SET active=false where login='caisse1@lachouettecoop.fr';
+        UPDATE res_users SET active=false where login='caisse2@lachouettecoop.fr';
+        UPDATE res_users SET active=false where login='caisse3@lachouettecoop.fr';
+        UPDATE res_users SET active=true where login='caisse1test@lachouettecoop.fr';
+        UPDATE res_users SET active=true where login='caisse2test@lachouettecoop.fr';
+        UPDATE res_users SET active=true where login='caisse3test@lachouettecoop.fr';
+
 SQL2
 fi
 
