@@ -9,6 +9,8 @@ RUN apt-get update \
         python-simplejson \
         python-ldap \
         python-pip \
+        # libffi-dev required for pysftp python module:
+        libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements-lcc.txt /

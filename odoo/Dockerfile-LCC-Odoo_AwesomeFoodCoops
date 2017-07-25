@@ -48,6 +48,8 @@ RUN set -x; \
             python-dev build-essential file \
             libxml2-dev libxslt-dev libldap2-dev libsasl2-dev libpq-dev \
             libjpeg-dev libopenjpeg-dev libtiff-dev libfreetype6-dev libwebp-dev liblcms2-dev \
+            # libffi-dev required for pysftp python module:
+            libffi-dev \
         # filter requirements.txt to comment out items also presents in requirements-lcc.txt
         && (for name in `awk -F== '/^[a-zA-Z]/ {print $1}' requirements-lcc.txt`; do sed -i -e 's/^'${name}'==/#'${name}'==/' requirements.txt; done) \
         # install python packages listed in requirements.txt or requirements-lcc.txt 
