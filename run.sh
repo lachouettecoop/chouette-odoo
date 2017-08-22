@@ -245,6 +245,7 @@ case $1 in
         installed_addons=`mktemp /tmp/installed_addons.XXXXXXXXXX`
         available_addons=`mktemp /tmp/available_addons.XXXXXXXXXX`
         ls -d addons/*/* \
+              data/odoo/files/addons/9.0/* \
               AwesomeFoodCoops/odoo/openerp/addons/* \
               AwesomeFoodCoops/odoo/addons/* \
               AwesomeFoodCoops/*_addons/* \
