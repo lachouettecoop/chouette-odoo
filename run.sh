@@ -204,6 +204,14 @@ case $1 in
                 if [ "$new_AwesomeFoodCoops_commit" != "$old_AwesomeFoodCoops_commit" ] ; then
                     echo "* NOUVEAU COMMIT AwesomeFoodCoops : $new_AwesomeFoodCoops_commit"
                     modules=`$0 modified_addons "$old_AwesomeFoodCoops_commit" "$new_AwesomeFoodCoops_commit"`
+                    for addon in `$0 missing_addons`; do
+                        echo ""
+                        echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                        echo "!! ERREUR: le module installé $addon"
+                        echo "!!         n'est plus disponible dans les sources !"
+                        echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+                        echo ""
+                    done
                 fi
                 echo "* IL FAUT METTRE À JOUR LA BASE DE DONNEE D'ODOO"
                 echo "**************************************************"
@@ -232,14 +240,40 @@ case $1 in
         fi
         ;;
 
+    missing_addons)
+        # Liste les addons installés dont le repertoire source est introuvable
+        installed_addons=`mktemp /tmp/installed_addons.XXXXXXXXXX`
+        available_addons=`mktemp /tmp/available_addons.XXXXXXXXXX`
+        ls -d addons/*/* \
+              AwesomeFoodCoops/odoo/openerp/addons/* \
+              AwesomeFoodCoops/odoo/addons/* \
+              AwesomeFoodCoops/*_addons/* \
+            | xargs -n 1 basename | sort | uniq \
+            > $available_addons
+        (for database in `$0 listdb`; do $0 listmod $database ; done) | sort | uniq > $installed_addons
+        comm -2 -3 $installed_addons $available_addons
+        rm -f $installed_addons
+        rm -f $available_addons
+        ;;
+
 
     #-------------------------------------------------------------------------
     update)
         # Mise à jour de la base Odoo en le lancant avec la commande -u $2
         # sur la base $1
+        for addon in `$0 missing_addons`; do
+            echo ""
+            echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+            echo "!! ERREUR: le module installé $addon"
+            echo "!!         n'est plus disponible dans les sources !"
+            echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+            echo ""
+        done
         shift
         databases="$1"
-        modules="$2"
+        shift
+        # La liste des modules doit être une liste spéarée par des virgules:
+        modules=`echo -n $* |tr '\n' ","|tr " " ","`
         if [ -z "$modules" ] ; then
             modules="all"
         fi
@@ -419,6 +453,21 @@ EO_DB_CLEANUP
             ORDER BY name;
 EOSQLTOPMOD
         ;;
+
+    list_github_addons)
+        # Liste les url github de chaque addons
+        function filter_directory_add_prefix() {
+            prefix="$1"
+            while read -r path; do
+                if test -d "$path"; then
+                    echo "$prefix$path"
+                fi
+            done
+        }
+        ls -d addons/*/* | filter_directory_add_prefix https://github.com/lachouettecoop/chouette-odoo/tree/master/
+        (cd AwesomeFoodCoops && ls -d *_addons/* | filter_directory_add_prefix https://github.com/AwesomeFoodCoops/odoo-production/tree/9.0/)
+        ;;
+
 
     #-------------------------------------------------------------------------
     build|config|create|down|events|exec|kill|logs|pause|port|ps|pull|restart|rm|run|start|stop|unpause|up)
