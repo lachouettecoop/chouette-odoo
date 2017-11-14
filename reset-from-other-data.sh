@@ -33,7 +33,7 @@ docker-compose stop && docker-compose rm -vf
 #rm -rf ./data
 
 echo "Récupération des données distantes"
-rsync -avzL --checksum --delete $DATA_TO_USE .
+rsync -avzL --checksum --delete $DATA_TO_USE . --exclude="*.dump.zip"
 
 echo "Redémarrage de la base de donnée avec les données à jour"
 docker-compose up -d db
