@@ -26,6 +26,9 @@ if [[ ! ( $REPLY =~ ^[oO]$ ) ]] ; then
 fi
 
 
+echo "Arrêt du monitoring nagios"
+service nrpe stop
+
 echo "Arrêt et suppression de l'instance actuelle"
 docker-compose stop && docker-compose rm -vf
 
@@ -33,7 +36,7 @@ docker-compose stop && docker-compose rm -vf
 #rm -rf ./data
 
 echo "Récupération des données distantes"
-rsync -avzL --checksum --delete $DATA_TO_USE .
+rsync -avzL --checksum --delete $DATA_TO_USE . --exclude="*.dump.zip"
 
 echo "Redémarrage de la base de donnée avec les données à jour"
 docker-compose up -d db
@@ -68,18 +71,23 @@ SQL1
         UPDATE res_users SET active=true where login='utilisateurlambda@lachouettecoop.fr';
 
         -- sas
+        UPDATE res_users SET active=true where login like '%@lachouettecoop.fr';
         UPDATE res_users SET active=false where login='caisse1@lachouettecoop.fr';
         UPDATE res_users SET active=false where login='caisse2@lachouettecoop.fr';
         UPDATE res_users SET active=false where login='caisse3@lachouettecoop.fr';
-        UPDATE res_users SET active=true where login='caisse1test@lachouettecoop.fr';
-        UPDATE res_users SET active=true where login='caisse2test@lachouettecoop.fr';
-        UPDATE res_users SET active=true where login='caisse3test@lachouettecoop.fr';
 
 SQL2
+    echo "Désactivation du serveur de Balance"
+    ./run.sh psql << SQL3
+        UPDATE product_scale_system SET ftp_host='';
+SQL3
 fi
 
 echo "Redémarrage d'Odoo"
 docker-compose up -d
+
+echo "Reprise du monitoring nagios"
+service nrpe start
 
 
 echo "... et voilà !"
