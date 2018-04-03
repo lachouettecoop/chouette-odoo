@@ -1,29 +1,34 @@
-data:
-  image: tianon/true
-  volumes:
-    - ./data/postgres:/var/lib/postgresql/data
-    - ./data/odoo/etc:/etc/odoo
-    - ./data/odoo/files:/var/lib/odoo
-    - ./addons:/mnt/extra-addons:ro
-    - ./AwesomeFoodCoops:/mnt/AwesomeFoodCoops:ro
-
 db:
   image: postgres:9.4
   environment:
     - POSTGRES_USER=odoo
     - POSTGRES_PASS=odoo
-  volumes_from:
-    - data
+  volumes:
+    - ./data/postgres:/var/lib/postgresql/data
 
 odoo:
   build: odoo
   links:
     - db:db
   environment:
-    - VIRTUAL_HOST=espace-membres.lachouettecoop.test
+    - VIRTUAL_HOST=espace-membres.lachouettecoop.fr.test
     - VIRTUAL_PORT=8069
     - PGHOST=db
     - PGUSER=odoo
     - PGPASSWORD=odoo
-  volumes_from:
-    - data
+  volumes:
+    - ./data/odoo/etc:/etc/odoo
+    - ./data/odoo/files:/var/lib/odoo
+    - ./addons:/mnt/extra-addons:ro
+    - ./AwesomeFoodCoops:/mnt/AwesomeFoodCoops:ro
+
+dashboard:
+  image: metabase/metabase:v0.27.2
+  links:
+    - db:db
+  environment:
+    - VIRTUAL_HOST=rapports.lachouettecoop.fr.test
+    - VIRTUAL_PORT=3000
+    - MB_DB_FILE=/metabase-data/metabase.db
+  volumes:
+    - ./data/metabase:/metabase-data
