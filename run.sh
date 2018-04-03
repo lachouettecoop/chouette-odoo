@@ -61,54 +61,6 @@ function select_database() {
     fi
 }
 
-function checkout_and_patch_AwesomeFoodCoops() {
-    # Checkout AwesomeFoodCoops git submodule
-    # et applique nos modifications spécifiques à la LCC
-    # dans une branche locale nommée "lcc".
-
-    test -e AwesomeFoodCoops/odoo || \
-        (git submodule init && git submodule update --recursive)
-
-    # Création d'un branche "lcc" où nous ferons nos changements
-    (cd AwesomeFoodCoops && (git checkout lcc 2> /dev/null || (git checkout 9.0 && git checkout -b lcc )))
-
-    pushd AwesomeFoodCoops/odoo > /dev/null
-
-    # Fix pour un bug lors de la mise à jour de Odoo 9.0-20160324 à Odoo 9.0-20170207
-    # et de l'éxécution de la commande de mise à jour de la base:
-    #     openerp-server -d db -u all
-    # on obtient l'exception:
-    #     File "/usr/lib/python2.7/dist-packages/openerp/fields.py", line 628, in _add_trigger
-    #         field = model._fields[name]
-    #     KeyError: 'is_portal'
-    # La clé 'is_portal' définie par le module 'portal', n'est pas trouvée dans le champ
-    # 'website.menu.group_ids' , défini dans le module 'website'
-    # Solution trouvée: faire en sorte que le module 'website' dépende du module 'portal':
-    grep  "'depends': \['portal'," addons/website/__openerp__.py >> /dev/null || ( \
-        sed -i -e "s/'depends': \[/'depends': \['portal', /" \
-            addons/website/__openerp__.py \
-        && git add addons/website/__openerp__.py  \
-        && git commit -m "LCC: make website addon depends on portal for -u all bug fix")
-
-    # Dans la vue web "Calendrier":
-    # - activation par défaut de "Calendriers de tout le monde"
-    grep "is_checked: false" addons/calendar/static/src/js/base_calendar.js && ( \
-        sed -i -e 's/is_checked: false/is_checked: true/' \
-            addons/calendar/static/src/js/base_calendar.js \
-        && git add addons/calendar/static/src/js/base_calendar.js \
-        && git commit -m "LCC: calendar addon: show all calendars by default")
-
-    # Dans la vue web "Calendrier":
-    # - début plage horaire à 8h
-    grep "firstHour: 6" addons/web_calendar/static/lib/fullcalendar/js/fullcalendar.js && ( \
-        sed -i -e 's/firstHour: 6,/firstHour: 8,/' \
-            addons/web_calendar/static/lib/fullcalendar/js/fullcalendar.js \
-        && git add addons/web_calendar/static/lib/fullcalendar/js/fullcalendar.js \
-        && git commit -m "LCC: calendar addon: firstHour: 8")
-
-    popd > /dev/null
-}
-
 case $1 in
     #-------------------------------------------------------------------------
     "")
@@ -125,7 +77,6 @@ case $1 in
         docker-compose run --rm db chown -R postgres:postgres /var/lib/postgresql
         docker-compose run --rm -u root odoo bash -c \
             "chown -R odoo:odoo /etc/odoo/*.conf; chmod -R 777 /var/lib/odoo"
-        checkout_and_patch_AwesomeFoodCoops
         ;;
 
     #-------------------------------------------------------------------------
@@ -148,15 +99,13 @@ case $1 in
             # Pour la version d'Odoo AwesomeFoodCoops/odoo dont les sources
             # sont gérées sous Git, on détecte les changements de version en
             # vérifiant le dernier commit sur la branche 9.0 (la branche principale)
-            # La difficulté étant que nous travaillons dans une branche locale
-            # différente nommée "lcc".
 
             echo "Fetch git submodule AwesomeFoodCoops 9.0 branch"
             # get hash of previous last commit on 9.0 branch:
             old_AwesomeFoodCoops_commit=`cd AwesomeFoodCoops && git log 9.0 -n 1 --pretty=format:"%H"`
             echo "old AwesomeFoodCoops commit $old_AwesomeFoodCoops_commit"
-            # fetch localy remote update on 9.0 branch while staying in lcc branch:
-            (cd AwesomeFoodCoops && git checkout lcc && git fetch origin 9.0:9.0)
+            # fetch localy remote update on 9.0 branch:
+            (cd AwesomeFoodCoops && git fetch origin)
             # get hash of last commit on 9.0 branch:
             new_AwesomeFoodCoops_commit=`cd AwesomeFoodCoops && git log 9.0 -n 1 --pretty=format:"%H"`
             echo "new AwesomeFoodCoops commit $new_AwesomeFoodCoops_commit"
@@ -189,11 +138,6 @@ case $1 in
 
             new_release=`dc_exec_or_run odoo env|grep ODOO_RELEASE || true`
             echo "new_release $new_release"
-
-            # Now that Odoo container is stopped we can update its sources,
-            # rebasing our local branch on the latest 9.0 branch:
-            echo "Update our local lcc branch of AwesomeFoodCoops Odoo sources"
-            (cd AwesomeFoodCoops && git checkout lcc && git rebase 9.0)
 
             if [ "$new_release" != "$old_release" -o "$new_AwesomeFoodCoops_commit" != "$old_AwesomeFoodCoops_commit" ] ; then
                 echo "**************************************************"

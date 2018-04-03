@@ -1,4 +1,5 @@
 /docker-compose.yml
+/data/metabase/
 /data/postgres/
 /data/odoo/files
 /data/odoo/etc/*.conf

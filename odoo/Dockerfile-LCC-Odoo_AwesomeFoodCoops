@@ -21,6 +21,7 @@ RUN set -x; \
         && curl -o wkhtmltox.deb -SL http://nightly.odoo.com/extra/wkhtmltox-0.12.1.2_linux-jessie-amd64.deb \
         && echo '40e8b906de658a2221b15e4e8cd82565a47d7ee8 wkhtmltox.deb' | sha1sum -c - \
         && dpkg --force-depends -i wkhtmltox.deb \
+        && pip install --upgrade setuptools \
         && apt-get -y install -f --no-install-recommends \
         && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false -o APT::AutoRemove::SuggestsImportant=false npm \
         && rm -rf /var/lib/apt/lists/* wkhtmltox.deb \
@@ -64,9 +65,10 @@ RUN set -x; \
             libxml2-dev libxslt-dev libldap2-dev libsasl2-dev libpq-dev \
             libjpeg-dev libopenjpeg-dev libtiff-dev libfreetype6-dev libwebp-dev liblcms2-dev \
             python-dev \
-        && rm -rf /var/lib/apt/lists/* \
-        # Odoo configuration:
-        && chmod +x /postinst \
+        && rm -rf /var/lib/apt/lists/*
+
+# Odoo configuration:
+RUN chmod +x /postinst \
         # "sync" needed to avoid random "Text file busy" error when trying to execute the file just after chmod:
         && sync \
         && /postinst configure \
