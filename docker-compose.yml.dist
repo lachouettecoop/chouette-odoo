@@ -25,5 +25,6 @@ odoo:
     - PGHOST=db
     - PGUSER=odoo
     - PGPASSWORD=odoo
+    - URL_TAF=https://script.google.com/macros/s/xxxxxxx/exec?email=
   volumes_from:
     - data
