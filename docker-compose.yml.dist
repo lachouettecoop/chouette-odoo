@@ -23,7 +23,7 @@ odoo:
     - ./AwesomeFoodCoops:/mnt/AwesomeFoodCoops:ro
 
 dashboard:
-  image: metabase/metabase:v0.27.2
+  image: metabase/metabase:v0.30.4
   links:
     - db:db
   environment:
