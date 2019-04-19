@@ -5,8 +5,8 @@ cd `dirname $0`
 
 function container_full_name() {
     # Retourne le nom complet du coneneur $1 si il est en cours d'exécution
-    # workaround for docker-compose ps: https://github.com/docker/compose/issues/1513
-    ids=$(docker-compose ps -q)
+    # workaround for /usr/local/bin/docker-compose ps: https://github.com/docker/compose/issues/1513
+    ids=$(/usr/local/bin/docker-compose ps -q)
     if [ "$ids" != "" ] ; then
         echo `docker inspect -f '{{if .State.Running}}{{.Name}}{{end}}' $ids \
               | cut -d/ -f2 | grep -E "_${1}_[0-9]"`
@@ -37,7 +37,7 @@ function dc_exec_or_run() {
         docker exec -it $options $CONTAINER_FULL_NAME "$@"
     else
         # container not started
-        docker-compose run --rm $options $CONTAINER_SHORT_NAME "$@"
+        /usr/local/bin/docker-compose run --rm $options $CONTAINER_SHORT_NAME "$@"
     fi
 }
 
@@ -66,7 +66,7 @@ case $1 in
     "")
         test -e data/odoo/etc/openerp-server.conf || $0 init
         test -e AwesomeFoodCoops/odoo || $0 init
-        docker-compose up -d
+        /usr/local/bin/docker-compose up -d
         ;;
 
     #-------------------------------------------------------------------------
@@ -74,8 +74,8 @@ case $1 in
         test -e docker-compose.yml || cp docker-compose.yml.dist docker-compose.yml
         test -e data/odoo/etc/openerp-server.conf \
             || cp data/odoo/etc/openerp-server.conf.dist data/odoo/etc/openerp-server.conf
-        docker-compose run --rm db chown -R postgres:postgres /var/lib/postgresql
-        docker-compose run --rm -u root odoo bash -c \
+        /usr/local/bin/docker-compose run --rm db chown -R postgres:postgres /var/lib/postgresql
+        /usr/local/bin/docker-compose run --rm -u root odoo bash -c \
             "chown -R odoo:odoo /etc/odoo/*.conf; chmod -R 777 /var/lib/odoo"
         ;;
 
@@ -126,15 +126,15 @@ case $1 in
             echo "Pull latest Docker images from Docker Hub"
             old_release=`dc_exec_or_run odoo env|grep ODOO_RELEASE || true`
             echo "old_release $old_release"
-            docker-compose pull
+            /usr/local/bin/docker-compose pull
             for image in `dc_dockerfiles_images`; do
                 docker pull $image
             done
             echo "Build local Docker images"
-            docker-compose build
+            /usr/local/bin/docker-compose build
             echo "Stop and delete Dokcer containers"
-            docker-compose stop
-            docker-compose rm -f
+            /usr/local/bin/docker-compose stop
+            /usr/local/bin/docker-compose rm -f
 
             new_release=`dc_exec_or_run odoo env|grep ODOO_RELEASE || true`
             echo "new_release $new_release"
@@ -189,7 +189,6 @@ case $1 in
         installed_addons=`mktemp /tmp/installed_addons.XXXXXXXXXX`
         available_addons=`mktemp /tmp/available_addons.XXXXXXXXXX`
         ls -d addons/*/* \
-              data/odoo/files/addons/9.0/* \
               AwesomeFoodCoops/odoo/openerp/addons/* \
               AwesomeFoodCoops/odoo/addons/* \
               AwesomeFoodCoops/*_addons/* \
@@ -236,11 +235,11 @@ case $1 in
                 local backupfile="pg_dump-$database-`date '+%Y-%m-%dT%H:%M:%S'`.gz"
                 echo "Sauvegarde avant mise à jour de la base $database dans $backupfile"
                 $0 pg_dump --clean $database |gzip > "$backupfile"
-                docker-compose run --rm odoo openerp-server -u "$modules" --stop-after-init -d "$database"
+                /usr/local/bin/docker-compose run --rm odoo openerp-server -u "$modules" --stop-after-init -d "$database"
                 $0 cleanup "$database"
             }
             $0 init
-            docker-compose stop odoo
+            /usr/local/bin/docker-compose stop odoo
             for database in $databases ; do
                 backup_and_update "$database" "$modules"
             done
@@ -289,9 +288,9 @@ EO_DB_CLEANUP
 
     #-------------------------------------------------------------------------
     debug)
-        docker-compose stop odoo
+        /usr/local/bin/docker-compose stop odoo
         shift
-        docker-compose run --rm odoo openerp-server \
+        /usr/local/bin/docker-compose run --rm odoo openerp-server \
             --logfile=/dev/stdout --log-level=debug \
             --debug --dev \
             "$@"
@@ -338,7 +337,7 @@ EO_DB_CLEANUP
         DB_CONTAINER=`container_full_name db`
         if [ "$DB_CONTAINER" = "" ] ; then
             echo "Démare le conteneur db" > /dev/stderr
-            docker-compose up -d db > /dev/stderr
+            /usr/local/bin/docker-compose up -d db > /dev/stderr
             sleep 3
             DB_CONTAINER=`container_full_name db`
         fi
@@ -416,7 +415,7 @@ EOSQLTOPMOD
 
     #-------------------------------------------------------------------------
     build|config|create|down|events|exec|kill|logs|pause|port|ps|pull|restart|rm|run|start|stop|unpause|up)
-        docker-compose "$@"
+        /usr/local/bin/docker-compose "$@"
         ;;
 
     #-------------------------------------------------------------------------
