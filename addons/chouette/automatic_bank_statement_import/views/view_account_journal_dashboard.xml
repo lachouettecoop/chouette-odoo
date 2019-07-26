@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+        <!-- Modify Kanban view for account dashboard -->
+        <record id="account_journal_dashboard_kanban_view_lf" model="ir.ui.view">
+            <field name="name">Kanban Account Journal Dashboard LF</field>
+            <field name="model">account.journal</field>
+            <field name="inherit_id" ref="account.account_journal_dashboard_kanban_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//t[@t-name='JournalBodyBankCash']/div[2]" position="replace">
+                    <div class="col-xs-6 o_kanban_primary_right">
+                        <div class="row">
+                            <div class="col-xs-6">
+                                <span title="Lettrages">Lettrages</span>
+                            </div>
+                            <div class="col-xs-6 text-right">
+                                <span><t t-esc="dashboard.account_balance"/></span>
+                            </div>
+                        </div>
+                        <div class="row" name="bank_balance" t-if="dashboard.bank_balance != dashboard.last_statement_amount">
+                            <div class="col-xs-6">
+                                <span title="Mouvements">Mouvements</span>
+                            </div>
+                            <div class="col-xs-6 text-right">
+                                <span><t t-esc="dashboard.bank_balance"/></span>
+                            </div>
+                        </div>
+                        <div class="row" name="latest_statement_date">
+                            <div class="col-xs-6">
+                                <span title="Date Dernier Relevé">Date màj</span>
+                            </div>
+                            <div class="col-xs-6 text-right">
+                                <span><t t-esc="dashboard.last_statement_date"/></span>
+                            </div>
+                        </div>
+                        <div class="row" name="latest_statement_amount" t-if="dashboard.account_balance != dashboard.last_statement_amount">
+                            <div class="col-xs-6">
+                                <span title="Dernier Relevé">Dernier Relevé</span>
+                            </div>
+                            <div class="col-xs-6 text-right">
+                                <span><t t-esc="dashboard.last_statement_amount"/></span>
+                            </div>
+                        </div>
+                    </div>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</openerp> 
+

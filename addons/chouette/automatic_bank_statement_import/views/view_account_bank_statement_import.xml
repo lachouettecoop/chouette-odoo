@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data noupdate="1">
+        <record id="auto_import_bank_1" model="ir.cron">
+            <field name="name">Automatic Import Bank Statements</field>
+            <field name="active" eval="True" />
+            <field name="user_id" ref="base.user_root" />
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="numbercall">-1</field>
+            <field name="nextcall" >2017-01-01 20:59:59</field>
+            <field name="model" eval="'account.bank.statement.import'" />
+            <field name="function" eval="'auto_import_file'" />
+            <field name="args" eval="('/ofx/bank_account_import.ofx',)" />
+        </record>
+        <record id="auto_import_bank_2" model="ir.cron">
+            <field name="name">Automatic Import Bank Statements Account 2</field>
+            <field name="active" eval="False" />
+            <field name="user_id" ref="base.user_root" />
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="numbercall">-1</field>
+            <field name="nextcall" >2017-01-01 21:29:59</field>
+            <field name="model" eval="'account.bank.statement.import'" />
+            <field name="function" eval="'auto_import_file'" />
+            <field name="args" eval="('/ofx/bank_account2_import.ofx',)" />
+        </record>
+        <record id="auto_import_bank2_1" model="ir.cron">
+            <field name="name">Automatic Import Bank 2 Statements</field>
+            <field name="active" eval="False" />
+            <field name="user_id" ref="base.user_root" />
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="numbercall">-1</field>
+            <field name="nextcall" >2017-01-01 21:59:59</field>
+            <field name="model" eval="'account.bank.statement.import'" />
+            <field name="function" eval="'auto_import_file'" />
+            <field name="args" eval="('/ofx/bank2_account_import.ofx',)" />
+        </record>
+        <record id="auto_import_bank2_2" model="ir.cron">
+            <field name="name">Automatic Import Bank 2 Statements Account 2</field>
+            <field name="active" eval="False" />
+            <field name="user_id" ref="base.user_root" />
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="numbercall">-1</field>
+            <field name="nextcall" >2017-01-01 22:29:59</field>
+            <field name="model" eval="'account.bank.statement.import'" />
+            <field name="function" eval="'auto_import_file'" />
+            <field name="args" eval="('/ofx/bank2_account2_import.ofx',)" />
+        </record>
+    </data>
+</openerp>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+    <data>
+        <!-- Add a field for each statement when treated -->
+        <record id="view_bank_statement_tree_lf" model="ir.ui.view">
+            <field name="name">Releves Bancaires LF</field>
+            <field name="model">account.bank.statement</field>
+            <field name="inherit_id" ref="account.view_bank_statement_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='state']" position="after">
+                    <field name='active'/>
+                </xpath>
+            </field>
+        </record>
+        <!-- Add filters whether statement has been treated or not -->
+        <record id="view_bank_statement_lf_search" model="ir.ui.view">
+            <field name="name">Filter treated field</field>
+            <field name="model">account.bank.statement</field>
+            <field name="inherit_id" ref="account.view_bank_statement_search"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='date']" position="after">
+                    <filter string="A traiter" name="to_be_treated"
+                                        domain="[('active', '=', True)]"
+                                        help="Relevés à lettrer"/>
+                    <filter string="Traités" name="treated"
+                                        domain="[('active', '=', False)]"
+                                        help="Relevés traités"/>
+                </xpath>
+            </field>
+        </record>
+        <!-- Add buttons treated / not treated -->
+        <record id="view_bank_statement_lf_form" model="ir.ui.view">
+            <field name="name">Add treated buttons</field>
+            <field name="model">account.bank.statement</field>
+            <field name="inherit_id" ref="account.view_bank_statement_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//div[@name='button_box']" position="inside">
+                    <div class="oe_button_box" name="button_box">
+                        <button name="toggle_active" type="object" class="oe_stat_button" icon="fa-credit-card">
+                            <field name="active" widget="boolean_button" options='{"terminology":{"string_false": "Traité", "hover_false": "A Traiter", "string_true": "A traiter", "hover_true": "Traité"}}'/>
+                        </button>
+                    </div>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</openerp> 
