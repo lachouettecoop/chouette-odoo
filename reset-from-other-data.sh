@@ -5,7 +5,8 @@ DATA_TO_USE=$1
 set -e
 
 DATA_TO_USE=$1
-VIRTUAL_HOST=`grep VIRTUAL_HOST docker-compose.yml | cut -d= -f2 | xargs`
+URL=`grep www.frontend.rule docker-compose.yml | cut -d ":" -f 3`
+VIRTUAL_HOST=${URL::-1}
 
 echo "Démarrage de la remise à zéro de cette instance d'Odoo."
 echo "... les données seront resynchronisées depuis " $DATA_TO_USE
@@ -15,7 +16,7 @@ if [[ "$DATA_TO_USE" != */data ]] ; then
     exit -1
 fi
 
-if [[ ("$VIRTUAL_HOST" == "espace-membres.lachouettecoop.fr") || ("$VIRTUAL_HOST" == "sas.lachouettecoop.fr") ]] ; then
+if [[ ($VIRTUAL_HOST == espace-membres.lachouettecoop.fr) || ($VIRTUAL_HOST == sas.lachouettecoop.fr) ]] ; then
     echo "ERREUR: remplacement des données de 'espace-membres.lachouettecoop.fr ou sas.***' interdit"
     exit -1
 fi
@@ -41,7 +42,7 @@ rsync -avzL --checksum --delete $DATA_TO_USE . --exclude="*.dump.zip"
 echo "Redémarrage de la base de donnée avec les données à jour"
 docker-compose up -d db
 
-if [[ ("$VIRTUAL_HOST" != "espace-membres.lachouettecoop.fr") && ("$VIRTUAL_HOST" != "sas.lachouettecoop.fr") ]] ; then
+if [[ ($VIRTUAL_HOST != espace-membres.lachouettecoop.fr) && ($VIRTUAL_HOST != sas.lachouettecoop.fr) ]] ; then
     echo "Configuration du domaine $VIRTUAL_HOST"
     sleep 4 # attente que la base de donnée soit lancée
     ./run.sh psql << SQL0

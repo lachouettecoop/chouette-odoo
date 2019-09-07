@@ -28,10 +28,14 @@ extension, and contain:
     password: password
 """
 
-
+# Looks for configuration file with same name and .yml extension in the same directory as this python script
 YML_CONF_FILE = os.path.splitext(sys.argv[0])[0] + ".yml"
 
-
+# Main class
+# 1. Loads variables from configuration file
+# 2. Connect and retrieve users from LDAP
+# 3. Connect to Odoo
+# 4. Update Odoo by mapping LDAP users to Odoo ones
 def main(dry_run=False):
     conf = open_conf_file(YML_CONF_FILE)
     ldap_persons = search_ldap_persons(**conf["ldap"])
@@ -150,10 +154,10 @@ class OdooRPC():
     def write(self, param1, *other_params):
         return self.execute(param1, 'write', *other_params)
 
-
+# Parses Configuration file and returns variables from that file
 def open_conf_file(filename):
     """Open and return the content of the .yml configuration file.
-       check that the required fields are persent.
+       check that the required fields are present.
     """
     conf = yaml.load(open(filename))
     for section, fields in {"ldap":["url","username","password","dn"],
@@ -172,7 +176,7 @@ def open_conf_file(filename):
                 sys.exit(-1)
     return conf
 
-
+# -d option allows to show what would be changed
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(sys.argv[0], description="Synchonize Odoo customers from LDAP persons")
     parser.add_argument('-d', '--dry-run', dest='dry_run', action='store_true', help="only print intended actions, don't actualy modify Odoo customers")
