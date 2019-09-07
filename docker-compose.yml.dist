@@ -1,34 +1,75 @@
-db:
-  image: postgres:9.4
-  environment:
-    - POSTGRES_USER=odoo
-    - POSTGRES_PASS=odoo
-  volumes:
-    - ./data/postgres:/var/lib/postgresql/data
-
-odoo:
-  build: odoo
-  links:
-    - db:db
-  environment:
-    - VIRTUAL_HOST=espace-membres.lachouettecoop.fr.test
-    - VIRTUAL_PORT=8069
-    - PGHOST=db
-    - PGUSER=odoo
-    - PGPASSWORD=odoo
-  volumes:
-    - ./data/odoo/etc:/etc/odoo
-    - ./data/odoo/files:/var/lib/odoo
-    - ./addons:/mnt/extra-addons:ro
-    - ./AwesomeFoodCoops:/mnt/AwesomeFoodCoops:ro
-
-dashboard:
-  image: metabase/metabase:v0.27.2
-  links:
-    - db:db
-  environment:
-    - VIRTUAL_HOST=rapports.lachouettecoop.fr.test
-    - VIRTUAL_PORT=3000
-    - MB_DB_FILE=/metabase-data/metabase.db
-  volumes:
-    - ./data/metabase:/metabase-data
+version: "2.1"
+services:
+  db:
+    image: postgres:9.4
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASS=odoo
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+  
+  odoo:
+    build: odoo
+    restart: unless-stopped
+    links:
+      - db:db
+    environment:
+      - PGHOST=db
+      - PGUSER=odoo
+      - PGPASSWORD=odoo
+    volumes:
+      - ./data/odoo/etc:/etc/odoo
+      - ./data/odoo/files:/var/lib/odoo
+      - ./addons:/mnt/extra-addons:ro
+      - ./AwesomeFoodCoops:/mnt/AwesomeFoodCoops
+    networks:
+      default:
+      inverseproxy_shared: 
+      mnt_default: 
+    labels:
+      traefik.docker.network: "inverseproxy_shared"
+      traefik.enable: "true"
+      traefik.frontend.passHostHeader: "true"
+      traefik.port: "8069"
+      traefik.frontend.headers.customResponseHeaders:
+         "X-Robots-Tag:noindex, nofollow"
+      traefik.dbmanager.frontend.auth.basic.users:
+         "odoo:$$2a$$04$$H.8jeAVksyw9V03W9SG64uccj9DccM15Dys/8kY3mUPr.Ho5bW9RG"
+      traefik.dbmanager.frontend.rule:
+         "Host:espace-membres.lachouettecoop.fr.odoo;PathPrefix:/web/database/"
+      traefik.dbselector.frontend.rule:
+         "Host:espace-membres.lachouettecoop.fr.odoo;PathPrefix:/web/database/{p:selector|list}"
+      traefik.websiteinfo.frontend.auth.basic.users:
+         "odoo:$$2a$$04$$H.8jeAVksyw9V03W9SG64uccj9DccM15Dys/8kY3mUPr.Ho5bW9RG"
+      traefik.websiteinfo.frontend.rule:
+         "Host:espace-membres.lachouettecoop.fr.odoo;Path:/website/info"
+      traefik.www.frontend.rule: "Host:espace-membres.lachouettecoop.fr.odoo"
+  
+  dashboard:
+    image: metabase/metabase:v0.30.4
+    restart: unless-stopped
+    links:
+      - db:db
+    environment:
+      - MB_DB_FILE=/metabase-data/metabase.db
+    volumes:
+      - ./data/metabase:/metabase-data
+    networks:
+      default:
+      inverseproxy_shared: 
+    labels:
+      traefik.docker.network: "inverseproxy_shared"
+      traefik.enable: "true"
+      traefik.frontend.passHostHeader: "true"
+      traefik.port: "3000"
+      traefik.own.frontend.rule: "Host:espace-membres.lachouettecoop.fr.rapports"
+  
+networks:
+    default:
+      driver_opts:
+        encrypted: 1
+    mnt_default:
+      external: true
+    inverseproxy_shared:
+      external: true
