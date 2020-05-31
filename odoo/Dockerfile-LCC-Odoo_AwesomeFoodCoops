@@ -78,7 +78,8 @@ RUN chmod +x /postinst \
         && chown -R odoo /mnt/extra-addons \
         && mkdir -p /mnt/AwesomeFoodCoops/odoo \
         && ln -s /mnt/AwesomeFoodCoops/odoo /usr/lib/python2.7/dist-packages/openerp \
-        && ln -s /mnt/AwesomeFoodCoops/odoo/openerp-server /usr/local/bin/openerp-server
+        && ln -s /mnt/AwesomeFoodCoops/odoo/openerp-server /usr/local/bin/openerp-server \
+        && ln -s /mnt/AwesomeFoodCoops/odoo/openerp-gevent /usr/local/bin/openerp-gevent
 
 VOLUME ["/var/lib/odoo", "/mnt/extra-addons", "/mnt/AwesomeFoodCoops"]
 
