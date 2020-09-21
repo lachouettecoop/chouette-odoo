@@ -28,7 +28,7 @@ fi
 
 
 echo "Arrêt du monitoring nagios"
-service nrpe stop
+systemctl stop nrpe
 
 echo "Arrêt et suppression de l'instance actuelle"
 docker-compose stop && docker-compose rm -vf
@@ -37,7 +37,7 @@ docker-compose stop && docker-compose rm -vf
 #rm -rf ./data
 
 echo "Récupération des données distantes"
-rsync -avzL --checksum --delete $DATA_TO_USE . --exclude="*.dump.zip"
+rsync -avzL --checksum --delete $DATA_TO_USE . --exclude="*.dump.zip" --exclude="metabase*"
 
 echo "Redémarrage de la base de donnée avec les données à jour"
 docker-compose up -d db
@@ -82,13 +82,17 @@ SQL2
     ./run.sh psql << SQL3
         UPDATE product_scale_system SET ftp_host='';
 SQL3
+    echo "Désactivation des backups"
+    ./run.sh psql << SQL4
+        DELETE FROM db_backup;
+SQL4
 fi
 
 echo "Redémarrage d'Odoo"
 docker-compose up -d
 
 echo "Reprise du monitoring nagios"
-service nrpe start
+systemctl start nrpe
 
 
 echo "... et voilà !"
