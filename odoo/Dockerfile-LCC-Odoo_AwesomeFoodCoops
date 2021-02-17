@@ -18,17 +18,12 @@ RUN set -x; \
             python-renderpm \
             python-support \
             python-watchdog \
-        && curl -o wkhtmltox.deb -SL http://nightly.odoo.com/extra/wkhtmltox-0.12.1.2_linux-jessie-amd64.deb \
-        && echo '40e8b906de658a2221b15e4e8cd82565a47d7ee8 wkhtmltox.deb' | sha1sum -c - \
+        && curl -o wkhtmltox.deb -sSL https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.jessie_amd64.deb \
+        && echo '4d104ff338dc2d2083457b3b1e9baab8ddf14202 wkhtmltox.deb' | sha1sum -c - \
         && dpkg --force-depends -i wkhtmltox.deb \
-        && pip install --upgrade setuptools \
         && apt-get -y install -f --no-install-recommends \
         && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false -o APT::AutoRemove::SuggestsImportant=false npm \
-        && rm -rf /var/lib/apt/lists/* wkhtmltox.deb \
-        && pip install psycogreen==1.0
-
-COPY ./openerp-server.conf /etc/odoo/
-COPY ./entrypoint.sh debian/control debian/postinst requirements.txt requirements-lcc.txt /
+        && rm -rf /var/lib/apt/lists/* wkhtmltox.deb
 
 # Install dependencies required for Odoo and its configuration
 RUN set -x; \
@@ -49,15 +44,19 @@ RUN set -x; \
             python-dev build-essential file \
             libxml2-dev libxslt-dev libldap2-dev libsasl2-dev libpq-dev \
             libjpeg-dev libopenjpeg-dev libtiff-dev libfreetype6-dev libwebp-dev liblcms2-dev \
-            # libffi-dev required for pysftp python module:
-            libffi-dev \
-        # filter requirements.txt to comment out items also presents in requirements-lcc.txt
-        && (for name in `awk -F== '/^[a-zA-Z]/ {print $1}' requirements-lcc.txt`; do sed -i -e 's/^'${name}'==/#'${name}'==/' requirements.txt; done) \
-        # install python packages listed in requirements.txt or requirements-lcc.txt 
-        # except "requests" package that breaks pip
-        && (cat requirements.txt requirements-lcc.txt | sed -e 's/^requests=/#requests=/' > requirements-combined.txt) \
-        && pip install -U -r /requirements-combined.txt \
-        # purge debian packages that where only needed to build python packages with "pip install"
+            # libffi-dev required for pysftp python module:
+            libffi-dev
+
+COPY ./openerp-server.conf /etc/odoo/
+COPY ./entrypoint.sh debian/control debian/postinst Pipfile Pipfile.lock /app/
+
+WORKDIR /app
+
+ENV PIPENV_VENV_IN_PROJECT 1
+
+RUN python -m pip install "pip>=20,<21" \
+        && pip install pipenv \
+        && pipenv install \
         && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
             -o APT::AutoRemove::SuggestsImportant=false \
             build-essential \
@@ -68,10 +67,10 @@ RUN set -x; \
         && rm -rf /var/lib/apt/lists/*
 
 # Odoo configuration:
-RUN chmod +x /postinst \
+RUN chmod +x /app/postinst \
         # "sync" needed to avoid random "Text file busy" error when trying to execute the file just after chmod:
         && sync \
-        && /postinst configure \
+        && /app/postinst configure \
         && chown odoo /etc/odoo/openerp-server.conf \
         # Reference Odoo installation and addons from mounted Docker volumes:
         && mkdir -p /mnt/extra-addons \
@@ -92,5 +91,5 @@ ENV OPENERP_SERVER /etc/odoo/openerp-server.conf
 ## Set default user when running the container
 USER odoo
 
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["openerp-server"]
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["pipenv", "run", "openerp-server"]
