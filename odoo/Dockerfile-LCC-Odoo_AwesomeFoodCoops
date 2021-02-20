@@ -8,6 +8,8 @@ ENV APT_DEPS='python-dev build-essential libxml2-dev libxslt1-dev libjpeg-dev li
     LC_ALL=C.UTF-8 \
     PGDATABASE=odoo
 
+COPY ./requirements-lcc.txt /tmp/
+
 RUN set -x; \
         sed -Ei 's@(^deb http://deb.debian.org/debian jessie-updates main$)@#\1@' /etc/apt/sources.list &&\
         apt-get update &&\
@@ -43,11 +45,7 @@ RUN set -x; \
         apt-get update &&\
         dpkg --install wkhtmltox.deb &&\
         apt-get install -y --no-install-recommends postgresql-client &&\
-        apt-get install -y --no-install-recommends ${APT_DEPS}
-
-COPY ./requirements-lcc.txt /tmp/
-
-RUN set -x; \
+        apt-get install -y --no-install-recommends ${APT_DEPS} &&\
         curl https://bootstrap.pypa.io/2.7/get-pip.py | python /dev/stdin &&\
         pip install -I -r https://raw.githubusercontent.com/OCA/OCB/9.0/requirements.txt &&\
         pip install -I -r /tmp/requirements-lcc.txt &&\
