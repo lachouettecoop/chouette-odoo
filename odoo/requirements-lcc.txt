@@ -1,5 +1,5 @@
 # Modules python suplémentaires
-# spécifiquement nécessaires pour des modules Odoo 
+# spécifiquement nécessaires pour des modules Odoo
 # utilisé par La Chouette Coop (LCC)
 #
 # À instaler avec la commande (qui est exécutée par le Dockerfile)
@@ -26,10 +26,10 @@ Unidecode==0.4.20
 #======================================================================
 # Barcode, QRCode
 #----------------------------------------------------------------------
-pyBarcode==0.7
+pyBarcode==0.8b1
 qrcode==5.3
 
 #======================================================================
 # pysftp nécessaire pour le module OCA "auto_backup"
 #----------------------------------------------------------------------
-pysftp
+pysftp==0.2.9
