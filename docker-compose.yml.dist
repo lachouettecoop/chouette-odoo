@@ -26,28 +26,18 @@ services:
     networks:
       default:
       inverseproxy_shared: 
-      mnt_default: 
     labels:
       traefik.docker.network: "inverseproxy_shared"
       traefik.enable: "true"
       traefik.frontend.passHostHeader: "true"
       traefik.port: "8069"
-      traefik.frontend.headers.customResponseHeaders:
-         "X-Robots-Tag:noindex, nofollow"
-      traefik.dbmanager.frontend.auth.basic.users:
-         "odoo:$$2a$$04$$H.8jeAVksyw9V03W9SG64uccj9DccM15Dys/8kY3mUPr.Ho5bW9RG"
-      traefik.dbmanager.frontend.rule:
-         "Host:espace-membres.lachouettecoop.fr.odoo;PathPrefix:/web/database/"
-      traefik.dbselector.frontend.rule:
-         "Host:espace-membres.lachouettecoop.fr.odoo;PathPrefix:/web/database/{p:selector|list}"
-      traefik.websiteinfo.frontend.auth.basic.users:
-         "odoo:$$2a$$04$$H.8jeAVksyw9V03W9SG64uccj9DccM15Dys/8kY3mUPr.Ho5bW9RG"
-      traefik.websiteinfo.frontend.rule:
-         "Host:espace-membres.lachouettecoop.fr.odoo;Path:/website/info"
-      traefik.www.frontend.rule: "Host:espace-membres.lachouettecoop.fr.odoo"
+      traefik.longpolling.port: "8072"
+      traefik.longpolling.frontend.rule:
+         "Host:stage.lachouettecoop.fr;PathPrefix:/longpolling/"
+      traefik.www.frontend.rule: "Host:stage.lachouettecoop.fr"
   
   dashboard:
-    image: metabase/metabase:v0.30.4
+    image: metabase/metabase:v0.39.1
     restart: unless-stopped
     links:
       - db:db
@@ -63,13 +53,11 @@ services:
       traefik.enable: "true"
       traefik.frontend.passHostHeader: "true"
       traefik.port: "3000"
-      traefik.own.frontend.rule: "Host:espace-membres.lachouettecoop.fr.rapports"
+      traefik.own.frontend.rule: "Host:rapports.lachouettecoop.fr"
   
 networks:
     default:
       driver_opts:
         encrypted: 1
-    mnt_default:
-      external: true
     inverseproxy_shared:
       external: true
