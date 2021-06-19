@@ -19,7 +19,7 @@ odoo.define("pos_meal_voucher.models", function (require) {
 
         get_total_meal_voucher_eligible: function() {
             return round_pr(this.orderlines.reduce((function(sum, orderLine) {
-                if (orderLine.product.meal_voucher_ok){
+                if (orderLine.product.meal_voucher_ok && orderLine.get_price_with_tax() > 0){
                     return sum + orderLine.get_price_with_tax();
                 } else {
                     return sum;

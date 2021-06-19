@@ -14,6 +14,7 @@ RUN set -x; \
         sed -Ei 's@(^deb http://deb.debian.org/debian jessie-updates main$)@#\1@' /etc/apt/sources.list &&\
         apt-get update &&\
         apt-get install -y --no-install-recommends \
+            apt-transport-https \
             ca-certificates \
             curl \
             fontconfig \
@@ -38,10 +39,10 @@ RUN set -x; \
             xfonts-75dpi \
             xfonts-base \
             && \
-        echo 'deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main' >> /etc/apt/sources.list.d/postgresql.list &&\
         curl -SL https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - &&\
         curl -o wkhtmltox.deb -SL https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.jessie_amd64.deb &&\
         echo '4d104ff338dc2d2083457b3b1e9baab8ddf14202 wkhtmltox.deb' | sha1sum -c - &&\
+        echo 'deb https://apt-archive.postgresql.org/pub/repos/apt/ jessie-pgdg main' >> /etc/apt/sources.list.d/postgresql.list &&\
         apt-get update &&\
         dpkg --install wkhtmltox.deb &&\
         apt-get install -y --no-install-recommends postgresql-client &&\
