@@ -33,3 +33,6 @@ qrcode==5.3
 # pysftp nécessaire pour le module OCA "auto_backup"
 #----------------------------------------------------------------------
 pysftp==0.2.9
+
+simplejson==3.17.5
+WTForms==2.3.3
