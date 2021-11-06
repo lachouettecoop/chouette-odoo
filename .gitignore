@@ -4,3 +4,4 @@
 /data/odoo/files
 /data/odoo/etc/*.conf
 *.pyc
+/.idea/
