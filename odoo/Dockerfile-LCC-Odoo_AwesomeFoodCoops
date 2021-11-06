@@ -32,6 +32,7 @@ RUN sed -Ei 's@(^deb http://deb.debian.org/debian stretch-updates main$)@#\1@' /
         git \
         gnupg \
         libjpeg62-turbo \
+        libopenjp2-7 \
         libtiff5 \
         libx11-6 \
         libxcb1 \
