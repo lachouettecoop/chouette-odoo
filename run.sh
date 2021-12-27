@@ -71,7 +71,7 @@ case $1 in
 
     #-------------------------------------------------------------------------
     init)
-        test -e docker-compose.yml || cp docker-compose.yml.dist docker-compose.yml
+        test -e docker-compose.yml || cp docker-compose.yml.dev docker-compose.yml
         test -e data/odoo/etc/openerp-server.conf \
             || cp data/odoo/etc/openerp-server.conf.dist data/odoo/etc/openerp-server.conf
         /usr/local/bin/docker-compose run --rm db chown -R postgres:postgres /var/lib/postgresql

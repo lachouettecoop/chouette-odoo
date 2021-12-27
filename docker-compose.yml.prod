@@ -1,0 +1,52 @@
+version: "2.1"
+services:
+  db:
+    image: postgres:9.6
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=dbsas
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=...
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      default:
+      metabase_shared:
+
+  odoo:
+    build: odoo
+    restart: unless-stopped
+    links:
+      - db:db
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=...
+    volumes:
+      - ./data/odoo/etc:/etc/odoo
+      - ./data/odoo/files:/var/lib/odoo
+      - ./addons:/mnt/extra-addons:ro
+      - ./AwesomeFoodCoops:/mnt/AwesomeFoodCoops
+    networks:
+      default:
+      traefik_web:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_web"
+      - "traefik.http.routers.odoo.entrypoints=web,websecure"
+      - "traefik.http.routers.odoo.rule=Host(`preprod.sas.lachouettecoop.fr)"
+      - "traefik.http.routers.odoo.tls.certresolver=myresolver"
+      - "traefik.http.services.odoo.loadbalancer.server.port=8069"
+      - "traefik.http.routers.longpolling.entrypoints=web,websecure"
+      - "traefik.http.routers.longpolling.rule=Host(`preprod.sas.lachouettecoop.fr) & Path(`\longpolling`)"
+      - "traefik.http.routers.longpolling.tls.certresolver=myresolver"
+      - "traefik.http.services.longpolling.loadbalancer.server.port=8072"
+  
+networks:
+    default:
+      driver_opts:
+        encrypted: 1
+    metabase_shared:
+      external: true
+    traefik_web:
+      external: true
