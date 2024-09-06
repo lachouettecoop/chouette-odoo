@@ -1,0 +1,2 @@
+deb http://apt.postgresql.org/pub/repos/apt/ jammy-pgdg main
+# deb http://apt-archive.postgresql.org/pub/repos/apt/ jessie-pgdg-archive main

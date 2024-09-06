@@ -1,0 +1,4 @@
+deb http://snapshot.debian.org/archive/debian/20220702T153535Z jessie main
+deb http://snapshot.debian.org/archive/debian-security/20220702T153535Z jessie/updates main
+deb http://snapshot.debian.org/archive/debian/20220702T153535Z jessie-updates main
+deb http://deb.debian.org/debian buster main non-free contrib

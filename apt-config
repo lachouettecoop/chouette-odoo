@@ -1,0 +1,3 @@
+Acquire::AllowInsecureRepositories "true";
+Acquire::Check-Valid-Until "false";
+APT::Get::AutomaticRemove "false";
